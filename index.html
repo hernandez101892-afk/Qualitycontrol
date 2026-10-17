@@ -214,7 +214,11 @@
         </div>
 
         <div class="flex items-center gap-2">
-          <button onclick="exportExcelCSV()" class="bg-white text-slate-700 border border-slate-300 px-3.5 py-2 rounded-xl text-xs font-bold hover:border-[#0078d4] hover:text-[#0078d4] shadow-sm flex items-center gap-1.5 transition">
+          
+          <button onclick="cargarRegistrosDesdeNube(false)" title="Actualizar registros en tiempo real desde Google Sheets" class="bg-white text-slate-700 border border-slate-300 px-3.5 py-2 rounded-xl text-xs font-bold hover:border-[#0078d4] hover:text-[#0078d4] shadow-sm flex items-center gap-1.5 transition active:scale-95">
+            <span id="btn-refresh-nube" class="inline-block">🔄</span> Sincronizar
+          </button>
+<button onclick="exportExcelCSV()" class="bg-white text-slate-700 border border-slate-300 px-3.5 py-2 rounded-xl text-xs font-bold hover:border-[#0078d4] hover:text-[#0078d4] shadow-sm flex items-center gap-1.5 transition">
             <span>📥</span> Exportar CSV
           </button>
           <button onclick="imprimirReportePDF()" class="bg-white text-slate-700 border border-slate-300 px-3.5 py-2 rounded-xl text-xs font-bold hover:border-[#0078d4] hover:text-[#0078d4] shadow-sm flex items-center gap-1.5 transition">
@@ -867,6 +871,56 @@
       if (modId === 'mod-reports') renderizarParetoAnaliticos();
       if (modId === 'mod-historial') renderizarHistorialGlobal();
     }
+
+    
+    function cargarRegistrosDesdeNube(silencioso) {
+      if (!URL_WEBHOOK_EXCEL || URL_WEBHOOK_EXCEL.includes('EJEMPLO')) return;
+      
+      const refreshIcons = document.querySelectorAll('#btn-refresh-nube, #btn-refresh-mobile');
+      refreshIcons.forEach(icon => icon.classList.add('animate-spin'));
+
+      fetch(URL_WEBHOOK_EXCEL + '?action=getRegistros')
+        .then(r => r.json())
+        .then(data => {
+          if (Array.isArray(data) && data.length > 0) {
+            let actualizados = 0;
+            data.forEach(item => {
+              if (item && item.folio) {
+                const localHist = baseDatos[item.folio]?.historial || [];
+                baseDatos[item.folio] = {
+                  ...baseDatos[item.folio],
+                  ...item,
+                  historial: (item.historial && Array.isArray(item.historial) && item.historial.length > 0) ? item.historial : localHist
+                };
+                actualizados++;
+              }
+            });
+            localStorage.setItem('db_calidad_v3', JSON.stringify(baseDatos));
+            cargarRegistrosDesdeNube(true);
+      aplicarFiltrosYTabla();
+            renderizarHistorialGlobal();
+            if (!silencioso) {
+              mostrarToastSync(`✅ ${actualizados} folios sincronizados en vivo desde la nube`);
+            }
+          } else if (!silencioso) {
+            mostrarToastSync('ℹ️ Registros al día con la nube');
+          }
+        })
+        .catch(err => {
+          console.error("Error al sincronizar registros desde la nube:", err);
+          if (!silencioso) {
+            mostrarToastSync('⚠️ Fallo de conexión con la nube', true);
+          }
+        })
+        .finally(() => {
+          refreshIcons.forEach(icon => icon.classList.remove('animate-spin'));
+        });
+    }
+
+    // Auto-sincronización periódica cada 15 segundos para actualización en tiempo real entre usuarios
+    setInterval(() => {
+      cargarRegistrosDesdeNube(true);
+    }, 15000);
 
     document.addEventListener('DOMContentLoaded', () => {
       const params = new URLSearchParams(window.location.search);
@@ -1530,7 +1584,7 @@ function aplicarFiltrosYTabla() {
         body: JSON.stringify(payload)
       })
       .then(() => {
-        mostrarToastSync('✅ Sincronización procesada en la nube');
+        mostrarToastSync('✅ Sincronización procesada en la nube'); setTimeout(() => { cargarRegistrosDesdeNube(true); }, 1500);
       })
       .catch(err => {
         console.error("Error webhook sync:", err);
