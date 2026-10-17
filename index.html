@@ -135,6 +135,9 @@
         <button id="nav-historial" onclick="navegarAModulo('mod-historial')" class="nav-item">
           <span>📋</span> Historial & Audit
         </button>
+        <a href="catalogos.html" class="nav-item">
+          <span>🗂️</span> Catálogos Maestros
+        </a>
         <button id="nav-config" onclick="abrirModalConfigAdmin()" class="nav-item">
           <span>⚙️</span> Config Admin
         </button>
@@ -190,6 +193,9 @@
             <span class="text-3xs font-extrabold text-[#0078d4] tracking-wider uppercase">GESTIÓN NCR</span>
             <h2 class="text-lg font-bold text-slate-800">Resumen Operativo de Planta</h2>
           </div>
+          <a href="catalogos.html" class="bg-slate-800 text-white px-4 py-2.5 rounded-xl text-xs font-bold hover:bg-slate-900 shadow-md flex items-center gap-2 transition">
+            <span>🗂️</span> Catálogos Maestros
+          </a>
           <button onclick="openNewNcrModal()" class="bg-[#0078d4] text-white px-4 py-2.5 rounded-xl text-xs font-bold hover:bg-blue-700 shadow-md flex items-center gap-2 transition">
             <span>➕</span> Nueva NCR
           </button>
@@ -1047,7 +1053,9 @@
     function abrirModalConfigAdmin() {
       const pin = prompt("Ingresa el PIN de Administrador (Default: 1234):");
       if (pin === "1234") {
-        alert("⚙️ Acceso concedido al Panel de Configuración de Administrador.");
+        if (confirm("⚙️ Acceso concedido. ¿Deseas abrir el Portal de Administración de Catálogos Maestros (catalogos.html)?")) {
+          window.location.href = "catalogos.html";
+        }
       } else if (pin) {
         alert("❌ PIN incorrecto.");
       }
