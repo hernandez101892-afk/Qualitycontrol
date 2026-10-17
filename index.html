@@ -447,6 +447,127 @@
 
   <!-- LÓGICA JAVASCRIPT Y CONECTOR GOOGLE SHEETS / EXCEL -->
   <script>
+    let fotoBase64Actual = "";
+    let fotosEvidenciaActuales = [];
+
+    const rolesUsuariosDefecto = {
+      "Rene Rodriguez": { rol: "Inspector", locacion: "EORWK", estampa: "5CHICA" },
+      "Elsa Helmes": { rol: "Supervisor", locacion: "HORWK", estampa: "A3CHICA" },
+      "Angel Cruz": { rol: "Administrador", locacion: "ABS", estampa: "C4MED" },
+      "Carlos Hdz": { rol: "Inspector", locacion: "F4RWK", estampa: "2GRANDE" },
+      "Gerencia Calidad": { rol: "Consulta", locacion: "GERENCIA", estampa: "G1HQ" }
+    };
+
+    function autoSeleccionarRolUsuario() {
+      const user = document.getElementById('login-usuario')?.value;
+      if (user && rolesUsuariosDefecto[user]) {
+        const selectRol = document.getElementById('login-rol');
+        if (selectRol) selectRol.value = rolesUsuariosDefecto[user].rol;
+      }
+    }
+
+    function autenticarUsuario(e) {
+      if (e) e.preventDefault();
+      const user = document.getElementById('login-usuario')?.value || 'Rene Rodriguez';
+      const rol = document.getElementById('login-rol')?.value || 'Inspector';
+      const info = rolesUsuariosDefecto[user] || { locacion: "EORWK", estampa: "5CHICA" };
+
+      perfilUsuario = {
+        nombre: user,
+        rol: rol,
+        locacion: info.locacion || "EORWK",
+        estampa: info.estampa || "5CHICA"
+      };
+
+      localStorage.setItem('perfil_inspector', JSON.stringify(perfilUsuario));
+
+      // Ocultar modal de login portal
+      const modal = document.getElementById('modal-login');
+      if (modal) modal.classList.add('hidden');
+
+      // Actualizar UI con el perfil activo
+      const lblPerfil = document.getElementById('lbl-perfil-activo');
+      if (lblPerfil) {
+        lblPerfil.innerText = ;
+      }
+
+      const pdfInsp = document.getElementById('pdf-inspector');
+      if (pdfInsp) pdfInsp.innerText = perfilUsuario.nombre;
+      const pdfInspFirma = document.getElementById('pdf-inspector-firma');
+      if (pdfInspFirma) pdfInspFirma.innerText = ;
+
+      aplicarPermisosRBAC(rol);
+    }
+
+    function aplicarPermisosRBAC(rol) {
+      const btnCancel = document.getElementById('btn-cancelar-folio');
+      if (btnCancel) {
+        if (rol === 'Administrador' || rol === 'Supervisor') {
+          btnCancel.classList.remove('hidden');
+        } else {
+          btnCancel.classList.add('hidden');
+        }
+      }
+    }
+
+    function procesarFotoEvidencia(input) {
+      if (!input || !input.files || !input.files.length) return;
+      const file = input.files[0];
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const img = new Image();
+        img.onload = function() {
+          const canvas = document.createElement('canvas');
+          const MAX_WIDTH = 800;
+          let width = img.width;
+          let height = img.height;
+          if (width > MAX_WIDTH) {
+            height = Math.round(height * (MAX_WIDTH / width));
+            width = MAX_WIDTH;
+          }
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, width, height);
+          
+          fotoBase64Actual = canvas.toDataURL('image/jpeg', 0.7);
+          fotosEvidenciaActuales = [fotoBase64Actual];
+
+          // Actualizar vista previa
+          const boxPreview = document.getElementById('box-vista-previa-foto');
+          const imgPreview = document.getElementById('img-vista-previa');
+          const btnLimpiar = document.getElementById('btn-limpiar-foto');
+
+          if (boxPreview) boxPreview.classList.remove('hidden');
+          if (imgPreview) imgPreview.src = fotoBase64Actual;
+          if (btnLimpiar) btnLimpiar.classList.remove('hidden');
+
+          // Actualizar foto en reporte PDF
+          const pdfBoxFoto = document.getElementById('pdf-box-foto');
+          const pdfImgEvidencia = document.getElementById('pdf-evidencia-foto');
+          if (pdfBoxFoto) pdfBoxFoto.classList.remove('hidden');
+          if (pdfImgEvidencia) pdfImgEvidencia.src = fotoBase64Actual;
+        };
+        img.src = e.target.result;
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function limpiarFoto() {
+      fotoBase64Actual = "";
+      fotosEvidenciaActuales = [];
+      const fileInput = document.getElementById('reg-foto-input');
+      if (fileInput) fileInput.value = "";
+
+      const boxPreview = document.getElementById('box-vista-previa-foto');
+      const btnLimpiar = document.getElementById('btn-limpiar-foto');
+      const pdfBoxFoto = document.getElementById('pdf-box-foto');
+
+      if (boxPreview) boxPreview.classList.add('hidden');
+      if (btnLimpiar) btnLimpiar.classList.add('hidden');
+      if (pdfBoxFoto) pdfBoxFoto.classList.add('hidden');
+    }
+
     // URL DE CONEXIÓN CON GOOGLE APPS SCRIPT
     // PEGA AQUÍ LA URL DE TU DESPLIEGUE WEB DE GOOGLE APPS SCRIPT
     const URL_WEBHOOK_EXCEL = "https://script.google.com/macros/s/AKfycbx2d6aWR2vrmtoJH-66nXJIJgQoaOfldrm8P37BEyhxiYwieYIuZyYLK1NjEYbmo7-l/exec";
@@ -932,6 +1053,7 @@
     }
 
     document.addEventListener('DOMContentLoaded', () => {
+      autoSeleccionarRolUsuario();
       autocompletarSubensamble();
       autocompletarOperador();
       calcularPendientes();
