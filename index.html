@@ -1,0 +1,854 @@
+<!DOCTYPE html>
+<html lang="es" class="h-full bg-slate-100">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Control de Calidad - Registros, QR, 5W1H, Perfil y Firma Digital</title>
+  
+  <!-- LIBRERÍAS EXTERNAS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+  <style>
+    @media print {
+      .no-print { display: none !important; }
+      body { background: white !important; }
+      .print-page { border: none !important; box-shadow: none !important; }
+    }
+  </style>
+</head>
+<body class="h-full text-slate-800 pb-24">
+
+  <!-- ENCABEZADO PRINCIPAL -->
+  <header class="bg-[#0047AB] text-white p-4 shadow-md sticky top-0 z-30 flex justify-between items-center no-print">
+    <div>
+      <h1 class="font-extrabold text-base">🛠️ Sistema de Calidad y Disposición</h1>
+      <p id="lbl-perfil-activo" class="text-xs text-blue-100">Inspector: Rene Rodriguez | Locación: EORWK</p>
+    </div>
+    <span class="bg-white text-[#0047AB] text-3xs font-bold px-2.5 py-1 rounded-full shadow-sm">
+      v3.0 Cloud
+    </span>
+  </header>
+
+  <!-- BARRA DE NAVEGACIÓN SPA -->
+  <nav class="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-300 flex justify-around p-2 z-30 no-print text-xs font-bold text-slate-600">
+    <button onclick="navegarAModulo('mod-registros')" id="nav-registros" class="flex flex-col items-center text-[#0047AB]">
+      <span>📋</span> Captura/Contención
+    </button>
+    <button onclick="navegarAModulo('mod-causaraiz')" id="nav-causaraiz" class="flex flex-col items-center">
+      <span>🔍</span> 5 Why's & CAPA
+    </button>
+    <button onclick="navegarAModulo('mod-historial')" id="nav-historial" class="flex flex-col items-center">
+      <span>📜</span> Audit Trail
+    </button>
+    <button onclick="navegarAModulo('mod-perfil')" id="nav-perfil" class="flex flex-col items-center">
+      <span>👤</span> Perfil
+    </button>
+    <button onclick="navegarAModulo('mod-firma')" id="nav-firma" class="flex flex-col items-center">
+      <span>✍️</span> Firma PDF
+    </button>
+  </nav>
+
+  <main class="max-w-xl mx-auto p-4 space-y-6">
+
+    <!-- BUSCADOR / CARGADOR DE FOLIOS -->
+    <section class="bg-white p-4 rounded-2xl border border-slate-300 shadow-sm space-y-2 no-print">
+      <h2 class="text-xs font-bold text-[#0047AB] uppercase">🔍 Cargar Folio para Edición / Análisis</h2>
+      <div class="flex gap-2">
+        <input type="text" id="input-buscar-folio" placeholder="Ej. FOL-2026-1001" class="flex-1 border p-2 rounded-xl text-xs font-mono uppercase">
+        <button onclick="buscarYCargarFolio()" class="bg-[#0047AB] text-white px-4 py-2 rounded-xl text-xs font-bold hover:bg-blue-800">
+          Cargar
+        </button>
+        <button onclick="nuevoRegistroModo()" class="bg-slate-200 text-slate-700 px-3 py-2 rounded-xl text-xs font-bold hover:bg-slate-300">
+          + Nuevo
+        </button>
+      </div>
+    </section>
+
+    <!-- MÓDULO 1: PASO 1 - REGISTRO, CONTENCIÓN Y DISPOSICIÓN INMEDIATA -->
+    <section id="mod-registros" class="space-y-4">
+      <div class="bg-white p-5 rounded-2xl border border-slate-300 shadow-sm space-y-4 no-print">
+        <div class="flex justify-between items-center border-b pb-2">
+          <h2 id="lbl-titulo-modo" class="text-sm font-bold text-[#0047AB]">Paso 1: Contención y Disposición Inmediata</h2>
+          <span id="lbl-folio-actual" class="font-mono font-extrabold text-xs text-slate-700">FOL-2026-1001</span>
+        </div>
+
+        <form id="form-paso1" class="space-y-3 text-xs">
+          <div class="grid grid-cols-2 gap-2">
+            <div>
+              <label class="block font-bold text-slate-600">Número de Parte</label>
+              <select id="reg-parte" onchange="autocompletarSubensamble()" class="w-full border p-2 rounded-xl bg-slate-50 font-mono">
+                <option value="41310">41310</option>
+                <option value="620407083">620407083</option>
+                <option value="29311">29311</option>
+                <option value="620407085">620407085</option>
+              </select>
+            </div>
+            <div>
+              <label class="block font-bold text-slate-600">Subensamble (Auto)</label>
+              <input type="text" id="reg-subensamble" readonly class="w-full border p-2 rounded-xl bg-slate-100 font-mono font-bold text-slate-700">
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-2">
+            <div>
+              <label class="block font-bold text-slate-600">Orden OC</label>
+              <input type="text" id="reg-oc" placeholder="OC1042851" required class="w-full border p-2 rounded-xl font-mono uppercase">
+            </div>
+            <div>
+              <label class="block font-bold text-slate-600">QTY Total</label>
+              <input type="number" id="reg-qty" value="100" oninput="calcularPendientes()" class="w-full border p-2 rounded-xl">
+            </div>
+          </div>
+
+          <div>
+            <label class="block font-bold text-slate-600">No Conformancia</label>
+            <select id="reg-defecto" class="w-full border p-2 rounded-xl bg-slate-50">
+              <option value="Drenaje obstruido">Drenaje obstruido</option>
+              <option value="Fuga en linea">Fuga en línea</option>
+              <option value="Fitting sin soldar">Fitting sin soldar</option>
+              <option value="Coils Contaminados">Coils Contaminados</option>
+            </select>
+          </div>
+
+          
+          <!-- MÓDULO DE CAPTURA DE FOTO EVIDENCIA -->
+          <div class="bg-slate-50 p-3 rounded-xl border border-slate-300 space-y-2">
+            <div class="flex justify-between items-center">
+              <label class="block font-bold text-slate-700 text-xs">📷 Evidencia Fotográfica del Defecto</label>
+              <button type="button" onclick="limpiarFoto()" id="btn-limpiar-foto" class="hidden text-3xs text-rose-600 font-bold hover:underline">Eliminar foto</button>
+            </div>
+            
+            <div class="flex items-center gap-2">
+              <label for="reg-foto-input" class="flex-1 flex items-center justify-center gap-2 bg-blue-50 border-2 border-dashed border-[#0047AB] text-[#0047AB] p-2.5 rounded-xl font-bold text-xs cursor-pointer hover:bg-blue-100 transition">
+                <span>📸 Tomar Foto / Adjuntar</span>
+                <input type="file" id="reg-foto-input" accept="image/*" capture="environment" onchange="procesarFotoEvidencia(this)" class="hidden">
+              </label>
+            </div>
+
+            <!-- Vista Previa de Foto -->
+            <div id="box-vista-previa-foto" class="hidden text-center border rounded-xl p-2 bg-white shadow-inner">
+              <img id="img-vista-previa" class="max-h-48 rounded-lg mx-auto object-contain border shadow-sm" alt="Evidencia Fotográfica">
+              <p class="text-3xs text-slate-400 mt-1 italic">Foto comprimida y lista para guardar</p>
+            </div>
+          </div>
+
+          <!-- DESGLOSE DE CONTENCIÓN -->
+          <div class="bg-blue-50/60 p-3 rounded-xl border border-blue-200 space-y-2">
+            <h3 class="font-bold text-[#0047AB]">Contención y Piezas</h3>
+            <div class="grid grid-cols-3 gap-2">
+              <div>
+                <label class="block font-bold text-emerald-700">Buenas</label>
+                <input type="number" id="reg-buenas" value="85" oninput="calcularPendientes()" class="w-full border p-1.5 rounded-lg">
+              </div>
+              <div>
+                <label class="block font-bold text-rose-700">Malas</label>
+                <input type="number" id="reg-malas" value="15" oninput="calcularPendientes()" class="w-full border p-1.5 rounded-lg">
+              </div>
+              <div>
+                <label class="block font-bold text-amber-700">Pendientes</label>
+                <input type="number" id="reg-pendientes" readonly class="w-full bg-amber-100 border border-amber-300 p-1.5 rounded-lg font-bold">
+              </div>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-2">
+            <div>
+              <label class="block font-bold text-slate-600">Disposición Material</label>
+              <select id="reg-disposicion" class="w-full border p-2 rounded-xl font-bold text-[#0047AB] bg-slate-50">
+                <option value="Retrabajo">Retrabajo</option>
+                <option value="Scrap">Scrap</option>
+                <option value="Usar asi">Usar así</option>
+                <option value="Retornar">Retornar a Proveedor</option>
+              </select>
+            </div>
+            <div>
+              <label class="block font-bold text-slate-600">Almacén Origen</label>
+              <select id="reg-almacen" class="w-full border p-2 rounded-xl bg-slate-50">
+                <option value="204121">204121 - Coil Pack</option>
+                <option value="204122">204122 - Foundry</option>
+                <option value="204123">204123 - Cold Plate</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- JUSTIFICACIÓN OBLIGATORIA PARA EDICIONES -->
+          <div id="box-motivo-cambio" class="hidden bg-amber-50 p-2.5 rounded-xl border border-amber-300 space-y-1">
+            <label class="block font-bold text-amber-900 text-3xs">Motivo de Edición (Auditoría) *</label>
+            <input type="text" id="reg-motivo-cambio" placeholder="Ej. Reinspección tras retrabajo en turno 2..." class="w-full border p-2 rounded-lg text-xs">
+          </div>
+
+          <div class="flex gap-2 pt-2">
+            <button type="submit" id="btn-guardar-p1" class="flex-1 bg-[#0047AB] text-white py-3 rounded-xl font-bold hover:bg-blue-800 shadow">
+              Guardar y Generar QR
+            </button>
+            <button type="button" onclick="imprimirReportePDF()" class="bg-slate-800 text-white px-4 py-3 rounded-xl font-bold hover:bg-slate-900 shadow">
+              🖨️ PDF
+            </button>
+          </div>
+        </form>
+
+        <!-- GENERADOR DE CÓDIGO QR -->
+        <div id="box-qr-generado" class="hidden border-2 border-dashed border-blue-400 bg-blue-50 p-4 rounded-2xl text-center space-y-2">
+          <span class="text-xs font-bold text-[#0047AB]">Etiqueta Digital QR Generada</span>
+          <div id="qrcode-box" class="flex justify-center p-2 bg-white rounded-xl shadow-inner w-fit mx-auto"></div>
+          <p class="text-3xs text-slate-500">Escanea este QR para ingresar directo al Paso 2 de Análisis.</p>
+        </div>
+      </div>
+
+      <!-- VISTA IMPRESA PDF -->
+      <div id="hoja-reporte-pdf" class="bg-white p-6 rounded-2xl border border-slate-300 space-y-4 print-page">
+        <div class="border-b-2 border-[#0047AB] pb-2 flex justify-between items-center">
+          <div>
+            <h3 class="font-extrabold text-sm text-[#0047AB]">REPORTE DE INSPECCIÓN Y DISPOSICIÓN DE CALIDAD</h3>
+            <p class="text-3xs text-slate-500">Documento Oficial de Control Operativo 5W1H</p>
+          </div>
+          <span id="pdf-folio" class="font-mono font-extrabold text-xs text-slate-800">FOL-2026-1001</span>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2 text-3xs border-b pb-3">
+          <p><strong>Orden OC:</strong> <span id="pdf-oc">OC1042851</span></p>
+          <p><strong>Núm. Parte:</strong> <span id="pdf-parte">41310</span></p>
+          <p><strong>Subensamble:</strong> <span id="pdf-subensamble">620064214</span></p>
+          <p><strong>Inspector:</strong> <span id="pdf-inspector">Rene Rodriguez</span></p>
+          <p><strong>Disposición:</strong> <span id="pdf-disposicion" class="font-bold text-[#0047AB]">Retrabajo</span></p>
+          <p><strong>Defecto:</strong> <span id="pdf-defecto">Drenaje obstruido</span></p>
+        </div>
+
+        
+        <!-- EVIDENCIA FOTOGRÁFICA EN REPORTE PDF -->
+        <div id="pdf-box-foto" class="hidden border-t pt-3 space-y-1">
+          <p class="font-bold text-3xs text-slate-700">📷 Evidencia Fotográfica de la No Conformancia:</p>
+          <div class="text-center bg-slate-50 p-2 rounded-xl border border-slate-200">
+            <img id="pdf-evidencia-foto" class="max-h-36 rounded-lg mx-auto object-contain border shadow-sm" alt="Foto Evidencia">
+          </div>
+        </div>
+
+        <div class="pt-4 flex justify-between items-end">
+          <div class="text-center w-48">
+            <div class="border-b border-slate-400 h-16 flex items-center justify-center overflow-hidden mb-1 bg-slate-50/50 rounded">
+              <img id="img-firma-estampada" class="max-h-14 hidden" alt="Firma Autorizada">
+              <span id="msg-sin-firma" class="text-3xs text-slate-400 italic">Sin firma configurada</span>
+            </div>
+            <p id="pdf-inspector-firma" class="text-3xs font-bold text-slate-700">Firma del Inspector</p>
+          </div>
+          <div id="qrcode-pdf" class="p-1 border rounded bg-white"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- MÓDULO 2: PASO 2 - ANÁLISIS 5 WHY'S, CAUSA RAÍZ Y ACCIÓN CAPA -->
+    <section id="mod-causaraiz" class="bg-white p-5 rounded-2xl border border-slate-300 shadow-sm space-y-4 hidden no-print">
+      <div class="border-b pb-2 flex justify-between items-center">
+        <h2 class="text-sm font-bold text-[#0047AB]">Paso 2: 5 Why's, Causa Raíz y Acción Correctiva</h2>
+        <span id="p2-folio-lbl" class="font-mono font-extrabold text-xs text-slate-700">FOL-2026-1001</span>
+      </div>
+
+      <form id="form-paso2" class="space-y-3 text-xs">
+        <div class="space-y-2 border-b pb-3">
+          <h3 class="font-bold text-[#0047AB]">Análisis de 5 Porqués (5 Why's)</h3>
+          <input type="text" id="p2-why1" placeholder="1. ¿Por qué ocurrió la no conformidad?" class="w-full border p-2 rounded-xl">
+          <input type="text" id="p2-why2" placeholder="2. ¿Por qué?" class="w-full border p-2 rounded-xl">
+          <input type="text" id="p2-why3" placeholder="3. ¿Por qué?" class="w-full border p-2 rounded-xl">
+          <input type="text" id="p2-why4" placeholder="4. ¿Por qué?" class="w-full border p-2 rounded-xl">
+          <input type="text" id="p2-why5" placeholder="5. ¿Por qué? (Causa Raíz Final)" class="w-full border p-2 rounded-xl">
+        </div>
+
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="block font-bold text-slate-600">Categoría 6 M's</label>
+            <select id="p2-6m" class="w-full border p-2 rounded-xl bg-slate-50 font-bold">
+              <option value="Mano de obra">Mano de obra</option>
+              <option value="Método">Método</option>
+              <option value="Máquina">Máquina</option>
+              <option value="Material">Material</option>
+              <option value="Medición">Medición</option>
+              <option value="Medio ambiente">Medio ambiente</option>
+            </select>
+          </div>
+          <div>
+            <label class="block font-bold text-slate-600">Estampa Operador</label>
+            <select id="p2-estampa" onchange="autocompletarOperador()" class="w-full border p-2 rounded-xl bg-slate-50 font-mono">
+              <option value="5CHICA">5CHICA - Rufino Perez</option>
+              <option value="A3CHICA">A3CHICA - Jireh De Angel</option>
+              <option value="C4MED">C4MED - Miguel Sarmiento</option>
+              <option value="2GRANDE">2GRANDE - Luis M. De La Cruz</option>
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <label class="block font-bold text-slate-600">Nombre del Operador Responsable</label>
+          <input type="text" id="p2-operador-nombre" readonly class="w-full border p-2 rounded-xl bg-slate-100 font-bold text-slate-800">
+        </div>
+
+        <div class="bg-amber-50 border border-amber-200 p-3 rounded-xl space-y-2">
+          <h3 class="font-bold text-amber-900">Disposición de Causa Raíz (Acción Correctiva / CAPA)</h3>
+          <textarea id="p2-accion-capa" rows="2" placeholder="Describa la modificación técnica o de procedimiento..." class="w-full border p-2 rounded-xl"></textarea>
+        </div>
+
+        <button type="submit" class="w-full bg-emerald-600 text-white py-3 rounded-xl font-bold hover:bg-emerald-700 shadow">
+          Guardar Análisis de Causa Raíz y Cierre
+        </button>
+      </form>
+    </section>
+
+    <!-- MÓDULO 3: BITÁCORA DE HISTORIAL (AUDIT TRAIL & GRÁFICOS ANALÍTICOS) -->
+    <section id="mod-historial" class="bg-white p-5 rounded-2xl border border-slate-300 shadow-sm space-y-4 hidden no-print">
+      <div class="border-b pb-2 flex justify-between items-center">
+        <div>
+          <h2 class="text-sm font-bold text-[#0047AB]">📜 Bitácora de Ediciones y Métricas</h2>
+          <p class="text-3xs text-slate-500">Auditoría de cambios y acumulación semanal por Inspector y Estampa</p>
+        </div>
+        <span id="cant-eventos-badge" class="bg-slate-100 text-slate-700 text-3xs font-bold px-2.5 py-1 rounded-full border">0 Eventos</span>
+      </div>
+
+      <!-- TARJETAS RESUMEN DE ACTIVIDAD -->
+      <div class="grid grid-cols-3 gap-2 text-center text-xs">
+        <div class="bg-blue-50 border border-blue-200 p-2 rounded-xl">
+          <span class="text-3xs text-blue-600 block font-bold">Total Registros</span>
+          <span id="kpi-total-registros" class="font-extrabold text-slate-800 text-sm">0</span>
+        </div>
+        <div class="bg-amber-50 border border-amber-200 p-2 rounded-xl">
+          <span class="text-3xs text-amber-700 block font-bold">Ediciones</span>
+          <span id="kpi-total-ediciones" class="font-extrabold text-amber-900 text-sm">0</span>
+        </div>
+        <div class="bg-purple-50 border border-purple-200 p-2 rounded-xl">
+          <span class="text-3xs text-purple-700 block font-bold">Top Estampa</span>
+          <span id="kpi-top-estampa" class="font-extrabold text-purple-900 text-3xs truncate block">N/A</span>
+        </div>
+      </div>
+
+      <!-- BOTONES DE SELECCIÓN DE GRÁFICO -->
+      <div class="flex bg-slate-100 p-1 rounded-xl text-3xs font-bold">
+        <button type="button" onclick="alternarGraficoHistorial('inspector')" id="btn-chart-inspector" class="flex-1 py-1.5 rounded-lg bg-[#0047AB] text-white text-center">
+          📊 Por Inspector
+        </button>
+        <button type="button" onclick="alternarGraficoHistorial('estampa')" id="btn-chart-estampa" class="flex-1 py-1.5 rounded-lg text-slate-600 hover:text-slate-900 text-center">
+          🏷️ Por Estampa / Operador
+        </button>
+      </div>
+
+      <!-- CONTENEDOR DE GRÁFICO INTERACTIVO CHART.JS -->
+      <div class="bg-slate-50 border border-slate-200 p-3 rounded-xl">
+        <canvas id="canvas-grafico-historial" height="170"></canvas>
+      </div>
+
+      <!-- LISTADO CRONOLÓGICO DE AUDITORÍA -->
+      <div class="space-y-2">
+        <h3 class="text-xs font-bold text-slate-700 border-b pb-1">Línea de Tiempo de Cambios</h3>
+        <div id="lista-historial-eventos" class="space-y-3 text-xs max-h-72 overflow-y-auto">
+          <p class="text-slate-400 text-3xs italic text-center py-4">Sin modificaciones registradas.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- MÓDULO 4: PERFIL DE USUARIO -->
+    <section id="mod-perfil" class="bg-white p-5 rounded-2xl border border-slate-300 shadow-sm space-y-4 hidden no-print text-xs">
+      <div class="border-b pb-2">
+        <h2 class="text-sm font-bold text-[#0047AB]">👤 Configuración de Perfil de Inspector</h2>
+        <p class="text-3xs text-slate-500">Datos para firma y atribución de registros</p>
+      </div>
+
+      <form id="form-perfil" class="space-y-3">
+        <div>
+          <label class="block font-bold text-slate-600">Inspector Autorizado</label>
+          <select id="cfg-inspector" onchange="actualizarDatosInspector()" class="w-full border p-2 rounded-xl bg-slate-50 font-bold">
+            <option value="Rene Rodriguez">Rene Rodriguez</option>
+            <option value="Elsa Helmes">Elsa Helmes</option>
+            <option value="Angel Cruz">Angel Cruz</option>
+            <option value="Adan Vargas">Adan Vargas</option>
+          </select>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="block font-bold text-slate-600">Locación</label>
+            <input type="text" id="cfg-locacion" readonly class="w-full border p-2 rounded-xl bg-slate-100 font-bold">
+          </div>
+          <div>
+            <label class="block font-bold text-slate-600">Estampa</label>
+            <input type="text" id="cfg-estampa" readonly class="w-full border p-2 rounded-xl bg-slate-100 font-bold">
+          </div>
+        </div>
+
+        <button type="submit" class="w-full bg-[#0047AB] text-white py-2.5 rounded-xl font-bold hover:bg-blue-800">
+          Guardar Perfil
+        </button>
+      </form>
+    </section>
+
+    <!-- MÓDULO 5: FIRMA DIGITAL -->
+    <section id="mod-firma" class="bg-white p-5 rounded-2xl border border-slate-300 shadow-sm space-y-4 hidden no-print text-xs">
+      <div class="border-b pb-2">
+        <h2 class="text-sm font-bold text-[#0047AB]">✍️ Firma Digital del Inspector</h2>
+        <p class="text-3xs text-slate-500">Firma táctil para estampar en reportes PDF</p>
+      </div>
+
+      <div class="border-2 border-dashed border-slate-400 rounded-xl bg-slate-50 p-1 flex justify-center">
+        <canvas id="canvas-firma" width="320" height="140" class="bg-white rounded-lg cursor-crosshair shadow-inner"></canvas>
+      </div>
+
+      <div class="flex gap-2">
+        <button type="button" onclick="limpiarCanvasFirma()" class="flex-1 bg-slate-200 text-slate-700 py-2 rounded-xl font-bold">
+          🧹 Limpiar
+        </button>
+        <button type="button" onclick="guardarFirmaDigital()" class="flex-1 bg-emerald-600 text-white py-2 rounded-xl font-bold">
+          💾 Guardar Firma
+        </button>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- LÓGICA JAVASCRIPT Y CONECTOR GOOGLE SHEETS / EXCEL -->
+  <script>
+    // URL DE CONEXIÓN CON GOOGLE APPS SCRIPT
+    // PEGA AQUÍ LA URL DE TU DESPLIEGUE WEB DE GOOGLE APPS SCRIPT
+    const URL_WEBHOOK_EXCEL = "https://script.google.com/macros/s/AKfycbx_EJEMPLO_REEMPLAZAR/exec";
+
+    const relacionPartes = { "41310": "620064214", "620407083": "620407062", "29311": "41269", "620407085": "620407044" };
+    const relacionEstampas = {
+      "5CHICA": "Rufino Perez Huerta",
+      "A3CHICA": "Jireh Emanuel De Angel Bautista",
+      "C4MED": "Miguel Sarmiento Portillo",
+      "2GRANDE": "Luis Miguel De La Cruz Osorio"
+    };
+    const inspectoresDatos = {
+      "Rene Rodriguez": { locacion: "EORWK", estampa: "5CHICA" },
+      "Elsa Helmes": { locacion: "HORWK", estampa: "A3CHICA" },
+      "Angel Cruz": { locacion: "ABS", estampa: "C4MED" },
+      "Adan Vargas": { locacion: "F4RWK", estampa: "2GRANDE" }
+    };
+
+    let baseDatos = JSON.parse(localStorage.getItem('db_calidad_v3') || '{}');
+    let perfilUsuario = JSON.parse(localStorage.getItem('perfil_inspector') || '{"nombre": "Rene Rodriguez", "locacion": "EORWK", "estampa": "5CHICA"}');
+    let folioActual = "FOL-2026-1001";
+    let esModoEdicion = false;
+
+    let canvas, ctx, dibujando = false;
+
+    function navegarAModulo(modId) {
+      document.querySelectorAll('main > section').forEach(s => s.classList.add('hidden'));
+      document.getElementById(modId).classList.remove('hidden');
+
+      document.querySelectorAll('nav button').forEach(b => b.classList.remove('text-[#0047AB]'));
+      const activeNav = document.getElementById(`nav-${modId.replace('mod-', '')}`);
+      if (activeNav) activeNav.classList.add('text-[#0047AB]');
+
+      if (modId === 'mod-firma') inicializarCanvasFirma();
+      if (modId === 'mod-historial') renderizarGraficoHistorial();
+    }
+
+    function autocompletarSubensamble() {
+      const parte = document.getElementById('reg-parte').value;
+      document.getElementById('reg-subensamble').value = relacionPartes[parte] || '';
+    }
+
+    function autocompletarOperador() {
+      const estampa = document.getElementById('p2-estampa').value;
+      document.getElementById('p2-operador-nombre').value = relacionEstampas[estampa] || '';
+    }
+
+    function calcularPendientes() {
+      const qty = parseInt(document.getElementById('reg-qty').value) || 0;
+      const buenas = parseInt(document.getElementById('reg-buenas').value) || 0;
+      const malas = parseInt(document.getElementById('reg-malas').value) || 0;
+      document.getElementById('reg-pendientes').value = Math.max(0, qty - (buenas + malas));
+    }
+
+    // SINCRONIZACIÓN AUTOMÁTICA EN LA NUBE (WEBHOOK)
+    function sincronizarConExcelNube(payload) {
+      if (!URL_WEBHOOK_EXCEL || URL_WEBHOOK_EXCEL.includes("EJEMPLO_REEMPLAZAR")) {
+        console.log("ℹ️ No se ha configurado una URL de Google Apps Script aún. Datos guardados solo localmente.");
+        return;
+      }
+
+      fetch(URL_WEBHOOK_EXCEL, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      }).then(() => {
+        console.log("✅ Datos enviados con éxito a la hoja de Google Sheets / Excel.");
+      }).catch(err => {
+        console.error("⚠️ Error de conexión al sincronizar:", err);
+      });
+    }
+
+    // GUARDA PASO 1 (CONTENCIÓN)
+    document.getElementById('form-paso1')?.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const ahora = new Date().toLocaleString('es-MX');
+
+      const ordenDatos = {
+        folio: folioActual,
+        fecha: ahora,
+        oc: document.getElementById('reg-oc').value,
+        numParte: document.getElementById('reg-parte').value,
+        subensamble: document.getElementById('reg-subensamble').value,
+        qty: parseInt(document.getElementById('reg-qty').value) || 0,
+        defecto: document.getElementById('reg-defecto').value,
+        buenas: parseInt(document.getElementById('reg-buenas').value) || 0,
+        malas: parseInt(document.getElementById('reg-malas').value) || 0,
+        pendientes: parseInt(document.getElementById('reg-pendientes').value) || 0,
+        disposicion: document.getElementById('reg-disposicion').value,
+        fotosEvidencia: arregloFotosBase64,
+        almacen: document.getElementById('reg-almacen').value,
+        inspector: perfilUsuario.nombre
+      };
+
+      if (esModoEdicion && baseDatos[folioActual]) {
+        const motivo = document.getElementById('reg-motivo-cambio').value.trim();
+        if (!motivo) { alert("⚠️ Escribe el motivo de la modificación para guardar en la bitácora."); return; }
+
+        const ordenPrevia = baseDatos[folioActual];
+        const cambios = [];
+        Object.keys(ordenDatos).forEach(k => {
+          if (String(ordenPrevia[k]) !== String(ordenDatos[k])) {
+            cambios.push({ campo: k, anterior: ordenPrevia[k], nuevo: ordenDatos[k] });
+          }
+        });
+
+        if (!ordenPrevia.historial) ordenPrevia.historial = [];
+        ordenPrevia.historial.unshift({ fechaHora: ahora, usuario: perfilUsuario.nombre, motivo: motivo, cambios: cambios });
+        
+        baseDatos[folioActual] = { ...ordenPrevia, ...ordenDatos };
+        ordenDatos.motivo = motivo;
+        ordenDatos.cambios = cambios;
+        alert(`✅ Folio ${folioActual} actualizado. Cambios guardados en bitácora e integrados con Excel.`);
+      } else {
+        baseDatos[folioActual] = {
+          ...ordenDatos,
+          historial: [{ fechaHora: ahora, usuario: perfilUsuario.nombre, motivo: "Creación inicial", cambios: [{ campo: "Estatus", anterior: "Nuevo", nuevo: "Creado" }] }]
+        };
+        ordenDatos.motivo = "Creación inicial";
+        alert(`✅ Nuevo folio ${folioActual} guardado localmente e integrado con Excel.`);
+      }
+
+      localStorage.setItem('db_calidad_v3', JSON.stringify(baseDatos));
+      
+      // Sincronización en vivo con la Nube
+      sincronizarConExcelNube(ordenDatos);
+
+      // Generar Código QR
+      generarEtiquetaQR(folioActual);
+      renderizarHistorialGlobal();
+      actualizarReportePDF();
+    });
+
+    // GUARDA PASO 2 (5 WHY'S)
+    document.getElementById('form-paso2')?.addEventListener('submit', (e) => {
+      e.preventDefault();
+      if (!baseDatos[folioActual]) { alert("⚠️ Carga o crea un folio en el Paso 1 antes de guardar la Causa Raíz."); return; }
+
+      const analisis = {
+        why1: document.getElementById('p2-why1').value,
+        why2: document.getElementById('p2-why2').value,
+        why3: document.getElementById('p2-why3').value,
+        why4: document.getElementById('p2-why4').value,
+        why5: document.getElementById('p2-why5').value,
+        categoria6m: document.getElementById('p2-6m').value,
+        estampa: document.getElementById('p2-estampa').value,
+        operador: document.getElementById('p2-operador-nombre').value,
+        causaRaiz: document.getElementById('p2-accion-capa').value,
+        estatus: "Causa Raíz Completada"
+      };
+
+      baseDatos[folioActual] = { ...baseDatos[folioActual], ...analisis };
+      localStorage.setItem('db_calidad_v3', JSON.stringify(baseDatos));
+
+      // Sincronizar actualización
+      sincronizarConExcelNube({ folio: folioActual, ...baseDatos[folioActual] });
+
+      alert(`✅ Análisis de Causa Raíz guardado para ${folioActual}.`);
+    });
+
+    function generarEtiquetaQR(folio) {
+      const box = document.getElementById('box-qr-generado');
+      const qrel = document.getElementById('qrcode-box');
+      if (box && qrel) {
+        qrel.innerHTML = "";
+        const urlApp = `${window.location.origin}${window.location.pathname}?folio=${folio}`;
+        new QRCode(qrel, { text: urlApp, width: 130, height: 130 });
+        box.classList.remove('hidden');
+      }
+    }
+
+    function buscarYCargarFolio() {
+      const input = document.getElementById('input-buscar-folio').value.trim().toUpperCase();
+      if (input && baseDatos[input]) {
+        folioActual = input;
+        esModoEdicion = true;
+        const o = baseDatos[input];
+
+        document.getElementById('reg-oc').value = o.oc || '';
+        document.getElementById('reg-parte').value = o.numParte || '41310';
+        autocompletarSubensamble();
+        document.getElementById('reg-qty').value = o.qty || 100;
+        document.getElementById('reg-defecto').value = o.defecto || 'Drenaje obstruido';
+        document.getElementById('reg-buenas').value = o.buenas || 0;
+        document.getElementById('reg-malas').value = o.malas || 0;
+        calcularPendientes();
+        document.getElementById('reg-disposicion').value = o.disposicion || 'Retrabajo';
+
+        document.getElementById('lbl-folio-actual').innerText = folioActual;
+        document.getElementById('p2-folio-lbl').innerText = folioActual;
+        document.getElementById('lbl-titulo-modo').innerText = `Editando Folio ${folioActual}`;
+        document.getElementById('box-motivo-cambio').classList.remove('hidden');
+        document.getElementById('btn-guardar-p1').innerText = "Actualizar Registro e Historial";
+
+        alert(`✅ Folio ${folioActual} cargado.`);
+      } else {
+        alert("❌ Folio no encontrado.");
+      }
+    }
+
+    function nuevoRegistroModo() {
+      esModoEdicion = false;
+      folioActual = `FOL-2026-${Math.floor(1000 + Math.random() * 9000)}`;
+      document.getElementById('form-paso1').reset();
+      autocompletarSubensamble();
+      calcularPendientes();
+
+      document.getElementById('lbl-folio-actual').innerText = folioActual;
+      document.getElementById('p2-folio-lbl').innerText = folioActual;
+      document.getElementById('lbl-titulo-modo').innerText = "Paso 1: Contención y Disposición Inmediata";
+      document.getElementById('box-motivo-cambio').classList.add('hidden');
+      document.getElementById('btn-guardar-p1').innerText = "Guardar y Generar QR";
+      document.getElementById('box-qr-generado').classList.add('hidden');
+    }
+
+    
+    // --- VARIABLES Y LÓGICA DE GRÁFICOS DE HISTORIAL ---
+    let miGraficoHistorial = null;
+    let vistaGraficoActiva = 'inspector';
+
+    function alternarGraficoHistorial(vista) {
+      vistaGraficoActiva = vista;
+      const btnInsp = document.getElementById('btn-chart-inspector');
+      const btnEst = document.getElementById('btn-chart-estampa');
+
+      if (vista === 'inspector') {
+        btnInsp.className = "flex-1 py-1.5 rounded-lg bg-[#0047AB] text-white text-center font-bold";
+        btnEst.className = "flex-1 py-1.5 rounded-lg text-slate-600 hover:text-slate-900 text-center font-bold";
+      } else {
+        btnEst.className = "flex-1 py-1.5 rounded-lg bg-[#0047AB] text-white text-center font-bold";
+        btnInsp.className = "flex-1 py-1.5 rounded-lg text-slate-600 hover:text-slate-900 text-center font-bold";
+      }
+      renderizarGraficoHistorial();
+    }
+
+    function renderizarGraficoHistorial() {
+      const canvasCtx = document.getElementById('canvas-grafico-historial')?.getContext('2d');
+      if (!canvasCtx) return;
+
+      const conteoInspectores = {};
+      const conteoEstampas = {};
+      let totalEdiciones = 0;
+      let totalOrdenes = Object.keys(baseDatos).length;
+
+      Object.keys(baseDatos).forEach(folio => {
+        const orden = baseDatos[folio];
+        const inspector = orden.inspector || 'Desconocido';
+        const estampa = orden.estampa || 'Sin Estampa';
+
+        conteoInspectores[inspector] = (conteoInspectores[inspector] || 0) + 1;
+        conteoEstampas[estampa] = (conteoEstampas[estampa] || 0) + 1;
+
+        if (orden.historial) {
+          totalEdiciones += Math.max(0, orden.historial.length - 1);
+        }
+      });
+
+      // Actualizar KPIs
+      document.getElementById('kpi-total-registros').innerText = totalOrdenes;
+      document.getElementById('kpi-total-ediciones').innerText = totalEdiciones;
+
+      // Encontrar top estampa
+      let topEst = "N/A";
+      let maxEstCount = 0;
+      Object.keys(conteoEstampas).forEach(e => {
+        if (conteoEstampas[e] > maxEstCount) {
+          maxEstCount = conteoEstampas[e];
+          topEst = `${e} (${maxEstCount})`;
+        }
+      });
+      document.getElementById('kpi-top-estampa').innerText = topEst;
+
+      // Preparar datos para Chart.js
+      const esInspector = (vistaGraficoActiva === 'inspector');
+      const objetoOrigen = esInspector ? conteoInspectores : conteoEstampas;
+      const etiquetas = Object.keys(objetoOrigen);
+      const valores = Object.values(objetoOrigen);
+
+      if (miGraficoHistorial) {
+        miGraficoHistorial.destroy();
+      }
+
+      miGraficoHistorial = new Chart(canvasCtx, {
+        type: 'bar',
+        data: {
+          labels: etiquetas.length ? etiquetas : ['Sin datos'],
+          datasets: [{
+            label: esInspector ? 'Registros por Inspector' : 'No Conformidades por Estampa',
+            data: valores.length ? valores : [0],
+            backgroundColor: esInspector ? '#0047AB' : '#8B5CF6',
+            borderRadius: 8
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            title: {
+              display: true,
+              text: esInspector ? 'Acumulado por Inspector' : 'Acumulado por Estampa / Operador',
+              font: { size: 11, weight: 'bold' },
+              color: '#334155'
+            }
+          },
+          scales: {
+            y: { beginAtZero: true, ticks: { precision: 0, font: { size: 10 } } },
+            x: { ticks: { font: { size: 10 } } }
+          }
+        }
+      });
+    }
+
+    function renderizarHistorialGlobal() {
+      const container = document.getElementById('lista-historial-eventos');
+      const badge = document.getElementById('cant-eventos-badge');
+      let count = 0;
+      container.innerHTML = "";
+
+      Object.keys(baseDatos).forEach(f => {
+        const hList = baseDatos[f].historial || [];
+        count += hList.length;
+        hList.forEach(h => {
+          const cStr = (h.cambios || []).map(c => `• ${c.campo}: <span class="line-through text-rose-500">${c.anterior}</span> ➔ <span class="text-emerald-600 font-bold">${c.nuevo}</span>`).join('<br>');
+          container.innerHTML += `
+            <div class="border-l-4 border-[#0047AB] pl-3 py-1.5 bg-slate-50 rounded-r-xl space-y-1">
+              <div class="flex justify-between font-bold text-3xs text-slate-700">
+                <span>[${f}] 👤 ${h.usuario}</span>
+                <span class="text-slate-400 font-normal">${h.fechaHora}</span>
+              </div>
+              <div class="text-3xs text-slate-600">${cStr || 'Registro de evento'}</div>
+              <p class="text-3xs text-slate-500 italic">"Motivo: ${h.motivo}"</p>
+            </div>
+          `;
+        });
+      });
+
+      if (badge) badge.innerText = `${count} Eventos`;
+    }
+
+    // CANVAS FIRMA DIGITAL
+    function inicializarCanvasFirma() {
+      canvas = document.getElementById('canvas-firma');
+      ctx = canvas.getContext('2d');
+      ctx.lineWidth = 2;
+      ctx.strokeStyle = "#0047AB";
+
+      canvas.onmousedown = (e) => { dibujando = true; ctx.beginPath(); ctx.moveTo(e.offsetX, e.offsetY); };
+      canvas.onmousemove = (e) => { if (dibujando) { ctx.lineTo(e.offsetX, e.offsetY); ctx.stroke(); } };
+      canvas.onmouseup = () => dibujando = false;
+
+      canvas.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        const r = canvas.getBoundingClientRect();
+        dibujando = true;
+        ctx.beginPath();
+        ctx.moveTo(e.touches[0].clientX - r.left, e.touches[0].clientY - r.top);
+      });
+      canvas.addEventListener('touchmove', (e) => {
+        e.preventDefault();
+        if (dibujando) {
+          const r = canvas.getBoundingClientRect();
+          ctx.lineTo(e.touches[0].clientX - r.left, e.touches[0].clientY - r.top);
+          ctx.stroke();
+        }
+      });
+      canvas.addEventListener('touchend', () => dibujando = false);
+    }
+
+    function limpiarCanvasFirma() { ctx.clearRect(0, 0, canvas.width, canvas.height); }
+
+    function guardarFirmaDigital() {
+      const dataURL = canvas.toDataURL("image/png");
+      localStorage.setItem('firma_inspector', dataURL);
+      cargarFirmaEnReporte();
+      alert('✅ Firma guardada.');
+    }
+
+    function cargarFirmaEnReporte() {
+      const f = localStorage.getItem('firma_inspector');
+      const img = document.getElementById('img-firma-estampada');
+      const msg = document.getElementById('msg-sin-firma');
+      if (f && img && msg) { img.src = f; img.classList.remove('hidden'); msg.classList.add('hidden'); }
+    }
+
+    function actualizarDatosInspector() {
+      const insp = document.getElementById('cfg-inspector').value;
+      const d = inspectoresDatos[insp] || { locacion: "Planta", estampa: "General" };
+      document.getElementById('cfg-locacion').value = d.locacion;
+      document.getElementById('cfg-estampa').value = d.estampa;
+    }
+
+    document.getElementById('form-perfil')?.addEventListener('submit', (e) => {
+      e.preventDefault();
+      perfilUsuario = {
+        nombre: document.getElementById('cfg-inspector').value,
+        locacion: document.getElementById('cfg-locacion').value,
+        estampa: document.getElementById('cfg-estampa').value
+      };
+      localStorage.setItem('perfil_inspector', JSON.stringify(perfilUsuario));
+      document.getElementById('lbl-perfil-activo').innerText = `Inspector: ${perfilUsuario.nombre} | Locación: ${perfilUsuario.locacion}`;
+      alert('✅ Perfil guardado.');
+    });
+
+    function actualizarReportePDF() {
+      document.getElementById('pdf-folio').innerText = folioActual;
+      document.getElementById('pdf-oc').innerText = document.getElementById('reg-oc').value;
+      document.getElementById('pdf-parte').innerText = document.getElementById('reg-parte').value;
+      document.getElementById('pdf-subensamble').innerText = document.getElementById('reg-subensamble').value;
+      document.getElementById('pdf-disposicion').innerText = document.getElementById('reg-disposicion').value;
+      document.getElementById('pdf-defecto').innerText = document.getElementById('reg-defecto').value;
+      document.getElementById('pdf-inspector').innerText = perfilUsuario.nombre;
+      document.getElementById('pdf-inspector-firma').innerText = perfilUsuario.nombre;
+
+      const qpdf = document.getElementById('qrcode-pdf');
+      if (qpdf) {
+        qpdf.innerHTML = "";
+        new QRCode(qpdf, { text: `FOLIO:${folioActual}`, width: 55, height: 55 });
+      }
+    }
+
+    function imprimirReportePDF() {
+      actualizarReportePDF();
+      cargarFirmaEnReporte();
+      window.print();
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      autocompletarSubensamble();
+      autocompletarOperador();
+      calcularPendientes();
+      actualizarDatosInspector();
+      cargarFirmaEnReporte();
+      renderizarHistorialGlobal();
+
+      // Cargar Folio si viene desde QR
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('folio')) {
+        document.getElementById('input-buscar-folio').value = params.get('folio');
+        buscarYCargarFolio();
+        navegarAModulo('mod-causaraiz');
+      }
+    });
+  </script>
+</body>
+</html>
