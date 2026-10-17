@@ -41,9 +41,9 @@
 
           <select id="login-usuario" onchange="autoSeleccionarRolUsuario()" class="w-full border p-3 rounded-xl bg-slate-50 font-bold text-slate-800">
             <option value="Rene Rodriguez">Rene Rodriguez (Inspector - EORWK)</option>
-            <option value="Elsa Helmes">Elsa Helmes (Supervisor - HORWK)</option>
-            <option value="Angel Cruz">Angel Cruz (Ingeniero / Admin - ABS)</option>
-            <option value="Carlos Hdz">Carlos Hdz (Inspector - F4RWK)</option>
+            <option value="Elsa Helmes">Elsa Helmes (Inspector - HORWK)</option>
+            <option value="Angel Cruz">Angel Cruz (Inspector - ABS)</option>
+            <option value="Carlos Hdz">Carlos Hdz (Administrador - F4RWK)</option>
             <option value="Gerencia Calidad">Gerencia Calidad (Rol Consulta)</option>
           </select>
         </div>
@@ -427,10 +427,7 @@
             <label class="block font-bold text-slate-600">Locación</label>
             <input type="text" id="cfg-locacion" readonly class="w-full border p-2 rounded-xl bg-slate-100 font-bold">
           </div>
-          <div>
-            <label class="block font-bold text-slate-600">Estampa</label>
-            <input type="text" id="cfg-estampa" readonly class="w-full border p-2 rounded-xl bg-slate-100 font-bold">
-          </div>
+          
         </div>
 
         <button type="submit" class="w-full bg-[#0047AB] text-white py-2.5 rounded-xl font-bold hover:bg-blue-800">
@@ -502,7 +499,7 @@
 
       const user = document.getElementById('login-usuario')?.value || 'Rene Rodriguez';
       let rol = document.getElementById('login-rol')?.value || 'Inspector';
-      const info = rolesUsuariosDefecto[user] || { locacion: "EORWK", estampa: "5CHICA" };
+      const info = inspectoresDatos[user] || { locacion: "EORWK" };
 
       if (rol === 'Administrador') {
         const pinIngresado = document.getElementById('input-pin-admin')?.value?.trim();
@@ -517,8 +514,7 @@
       perfilUsuario = {
         nombre: user,
         rol: rol,
-        locacion: info.locacion || "EORWK",
-        estampa: info.estampa || "5CHICA"
+        locacion: info.locacion || "EORWK"
       };
 
       localStorage.setItem('perfil_inspector', JSON.stringify(perfilUsuario));
@@ -686,14 +682,19 @@
       "2GRANDE": "Luis Miguel De La Cruz Osorio"
     };
     const inspectoresDatos = {
-      "Rene Rodriguez": { locacion: "EORWK", estampa: "5CHICA" },
-      "Elsa Helmes": { locacion: "HORWK", estampa: "A3CHICA" },
-      "Angel Cruz": { locacion: "ABS", estampa: "C4MED" },
-      "Adan Vargas": { locacion: "F4RWK", estampa: "2GRANDE" }
+      "Rene Rodriguez": { locacion: "EORWK" },
+      "Elsa Helmes": { locacion: "HORWK" },
+      "Angel Cruz": { locacion: "ABS" },
+      "Angel Esteban": { locacion: "JORWK" },
+      "Carlos Hdz": { locacion: "F4RWK" },
+      "Julia Garcia": { locacion: "F4RWK" },
+      "Adan Vargas": { locacion: "F4RWK" },
+      "Angel Bocanegra": { locacion: "F4RWK" },
+      "Gerencia Calidad": { locacion: "GERENCIA" }
     };
 
     let baseDatos = JSON.parse(localStorage.getItem('db_calidad_v3') || '{}');
-    let perfilUsuario = JSON.parse(localStorage.getItem('perfil_inspector') || '{"nombre": "Rene Rodriguez", "rol": "Inspector", "locacion": "EORWK", "estampa": "5CHICA"}');
+    let perfilUsuario = JSON.parse(localStorage.getItem('perfil_inspector') || '{"nombre": "Rene Rodriguez", "rol": "Inspector", "locacion": "EORWK"}');
     let folioActual = "FOL-2026-1001";
     let esModoEdicion = false;
 
@@ -1068,8 +1069,7 @@
         perfilUsuario = {
           nombre: userSelect,
           rol: rolesUsuariosDefecto[userSelect]?.rol || "Inspector",
-          locacion: inspectoresDatos[userSelect].locacion,
-          estampa: inspectoresDatos[userSelect].estampa
+          locacion: inspectoresDatos[userSelect].locacion
         };
       }
     }
@@ -1081,8 +1081,7 @@
         perfilUsuario = {
           nombre: userSelect,
           rol: rolesUsuariosDefecto[userSelect]?.rol || "Inspector",
-          locacion: inspectoresDatos[userSelect].locacion,
-          estampa: inspectoresDatos[userSelect].estampa
+          locacion: inspectoresDatos[userSelect].locacion
         };
       }
       localStorage.setItem('perfil_inspector', JSON.stringify(perfilUsuario));
