@@ -579,13 +579,23 @@
         <!-- MÓDULO FOTOGRAFÍAS -->
         <div class="border-t pt-3 space-y-2">
           <div class="flex items-center justify-between">
-            <label class="block font-bold text-slate-700">📷 Evidencias Fotográficas (GitHub Pages)</label>
-            <button type="button" onclick="limpiarFoto()" id="btn-limpiar-foto" class="hidden text-3xs text-rose-600 font-bold hover:underline">Eliminar foto</button>
+            <label class="block font-bold text-slate-700">📷 Evidencias Fotográficas (Hasta 5 Fotos)</label>
+            <span id="lbl-fotos-count" class="text-3xs font-extrabold text-[#0078d4]">0/5 cargadas</span>
           </div>
-          <input type="file" id="reg-foto-input" accept="image/*" capture="environment" onchange="procesarFotoEvidencia(this)" class="w-full text-xs border p-2 rounded-xl bg-slate-50">
-          <div id="box-vista-previa-foto" class="hidden text-center border rounded-xl p-2 bg-slate-50">
-            <img id="img-vista-previa" class="max-h-40 rounded-lg mx-auto object-contain border" alt="Evidencia">
+          
+          <div class="grid grid-cols-2 gap-2">
+            <button type="button" onclick="document.getElementById('input-camara-directa').click()" class="bg-blue-50 border border-blue-200 text-[#0078d4] hover:bg-blue-100 py-2.5 px-3 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 transition shadow-sm">
+              <span>📷</span> Tomar Foto (Cámara)
+            </button>
+            <input type="file" id="input-camara-directa" accept="image/*" capture="environment" onchange="procesarFotosEvidencia(this)" class="hidden">
+
+            <button type="button" onclick="document.getElementById('input-galeria-multi').click()" class="bg-slate-100 border border-slate-200 text-slate-700 hover:bg-slate-200 py-2.5 px-3 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 transition shadow-sm">
+              <span>🖼️</span> Galería (Multi-Fotos)
+            </button>
+            <input type="file" id="input-galeria-multi" accept="image/*" multiple onchange="procesarFotosEvidencia(this)" class="hidden">
           </div>
+
+          <div id="box-galeria-preview" class="grid grid-cols-5 gap-2 pt-1 hidden"></div>
         </div>
 
         <!-- PASO 2: 5 WHY'S Y OPERADOR -->
@@ -798,16 +808,23 @@
     }
 
     function aplicarPermisosRolUI() {
+      const isDiffAdmin = perfilUsuario.rol === 'Administrador';
+      const isConsulta = perfilUsuario.rol === 'Consulta';
+
+      const lblUserRole = document.getElementById('lbl-user-role');
+      if (lblUserRole) {
+        lblUserRole.innerText = `${perfilUsuario.rol} | ${perfilUsuario.locacion || 'F4RWK'}`;
+      }
+
       const btnNuevaNcr = document.getElementById('nav-registros');
       const btnNuevaNcrTop = document.querySelector('button[onclick="openNewNcrModal()"]');
-      
-      if (perfilUsuario.rol === 'Consulta') {
-        if (btnNuevaNcr) btnNuevaNcr.style.display = 'none';
-        if (btnNuevaNcrTop) btnNuevaNcrTop.style.display = 'none';
-      } else {
-        if (btnNuevaNcr) btnNuevaNcr.style.display = 'flex';
-        if (btnNuevaNcrTop) btnNuevaNcrTop.style.display = 'flex';
-      }
+      if (btnNuevaNcr) btnNuevaNcr.style.display = isConsulta ? 'none' : 'flex';
+      if (btnNuevaNcrTop) btnNuevaNcrTop.style.display = isConsulta ? 'none' : 'flex';
+
+      const navConfig = document.getElementById('nav-config');
+      const navCatLink = document.querySelector('a[href="catalogos.html"]');
+      if (navConfig) navConfig.style.display = isDiffAdmin ? 'flex' : 'none';
+      if (navCatLink) navCatLink.style.display = isDiffAdmin ? 'flex' : 'none';
     }
 
     function navegarAModulo(modId) {
@@ -1637,20 +1654,42 @@ function aplicarFiltrosYTabla() {
     }
 
     function abrirModalConfigAdmin() {
-      const pin = prompt("Ingresa el PIN de Administrador (Default: 1234):");
-      if (pin === "1234") {
-        if (confirm("⚙️ Acceso concedido.\n\n[Aceptar] -> Abrir Catálogos Maestros (catalogos.html)\n[Cancelar] -> Abrir Log de Errores de Sincronización")) {
-          window.location.href = "catalogos.html";
-        } else {
-          abrirModalLogErrores();
+      if (perfilUsuario.rol !== 'Administrador') {
+        const pin = prompt("🔒 Acceso Exclusivo de Administrador (Carlos Hdz). Ingresa la clave PIN (Default: 1234):");
+        if (pin !== "1234") {
+          alert("❌ PIN incorrecto. Acceso denegado.");
+          return;
         }
-      } else if (pin) {
-        alert("❌ PIN incorrecto.");
+      }
+      if (confirm("⚙️ Panel de Administrador.\n\n[Aceptar] -> Abrir Catálogos Maestros (catalogos.html)\n[Cancelar] -> Abrir Bitácora de Errores de Sincronización")) {
+        window.location.href = "catalogos.html";
+      } else {
+        abrirModalLogErrores();
       }
     }
 
     document.addEventListener('DOMContentLoaded', () => {
-      autenticarUsuario();
+      autoSeleccionarRolUsuario();
+      const savedProfile = localStorage.getItem('perfil_inspector');
+      if (savedProfile) {
+        try {
+          perfilUsuario = JSON.parse(savedProfile);
+          const user = perfilUsuario.nombre;
+          const rolOficial = perfilUsuario.rol;
+          const locacion = perfilUsuario.locacion || 'F4RWK';
+          document.getElementById('lbl-user-name').innerText = user;
+          document.getElementById('lbl-user-role').innerText = `${rolOficial} | ${locacion}`;
+          document.getElementById('lbl-avatar-initials').innerText = user.split(' ').map(n=>n[0]).join('').slice(0,2);
+          cerrarModalPortal();
+        } catch(err) {
+          document.getElementById('modal-login').classList.remove('hidden');
+          document.getElementById('modal-login').style.display = 'flex';
+        }
+      } else {
+        document.getElementById('modal-login').classList.remove('hidden');
+        document.getElementById('modal-login').style.display = 'flex';
+      }
+      aplicarPermisosRolUI();
       actualizarBadgeContadorErrores();
       aplicarFiltrosYTabla();
     });
