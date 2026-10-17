@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Administración de Catálogos - Control de Calidad</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Inter', sans-serif; background-color: #F8FAFC; }
+    .tab-active { border-bottom: 3px solid #0047AB; color: #0047AB; font-weight: 700; }
+  </style>
+</head>
+<body class="text-slate-800 min-h-screen flex flex-col">
+
+  <!-- ENCABEZADO PRINCIPAL -->
+  <header class="bg-[#0047AB] text-white p-4 shadow-lg sticky top-0 z-40">
+    <div class="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-3">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 bg-white/10 rounded-xl flex items-center justify-center text-xl font-bold shadow-inner">
+          🗂️
+        </div>
+        <div>
+          <h1 class="text-lg font-bold tracking-tight">Administración de Catálogos Maestros</h1>
+          <p class="text-xs text-blue-100">Base de Datos Central • Control_Calidad_BaseData</p>
+        </div>
+      </div>
+      <div class="flex items-center gap-2">
+        <button onclick="sincronizarCatalogosConNube()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow">
+          <span>☁️</span> Sincronizar con Google Sheets
+        </button>
+        <button onclick="exportarCatalogosJSON()" class="bg-blue-800 hover:bg-blue-900 text-white px-3 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow">
+          <span>📥</span> Respaldar JSON
+        </button>
+        <a href="index.html" class="bg-white/20 hover:bg-white/30 text-white px-3 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1">
+          <span>⬅️</span> Volver al Portal NCR
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <!-- CONTENIDO PRINCIPAL -->
+  <main class="flex-1 max-w-7xl w-full mx-auto p-4 md:p-6 space-y-6">
+
+    <!-- TARJETAS RESUMEN DE REGISTROS -->
+    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 md:gap-4">
+      <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-3">
+        <div class="w-10 h-10 bg-blue-50 text-[#0047AB] rounded-xl flex items-center justify-center text-lg font-bold">👷</div>
+        <div>
+          <span class="text-3xs font-bold text-slate-400 uppercase tracking-wider block">Inspectores</span>
+          <span id="cnt-inspectores" class="text-lg font-extrabold text-slate-800">0</span>
+        </div>
+      </div>
+      <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-3">
+        <div class="w-10 h-10 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center text-lg font-bold">🏭</div>
+        <div>
+          <span class="text-3xs font-bold text-slate-400 uppercase tracking-wider block">Almacenes</span>
+          <span id="cnt-almacenes" class="text-lg font-extrabold text-slate-800">0</span>
+        </div>
+      </div>
+      <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-3">
+        <div class="w-10 h-10 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center text-lg font-bold">🧩</div>
+        <div>
+          <span class="text-3xs font-bold text-slate-400 uppercase tracking-wider block">Núm. Parte</span>
+          <span id="cnt-partes" class="text-lg font-extrabold text-slate-800">0</span>
+        </div>
+      </div>
+      <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-3">
+        <div class="w-10 h-10 bg-rose-50 text-rose-600 rounded-xl flex items-center justify-center text-lg font-bold">⚠️</div>
+        <div>
+          <span class="text-3xs font-bold text-slate-400 uppercase tracking-wider block">Defectos</span>
+          <span id="cnt-defectos" class="text-lg font-extrabold text-slate-800">0</span>
+        </div>
+      </div>
+      <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-3">
+        <div class="w-10 h-10 bg-amber-50 text-amber-600 rounded-xl flex items-center justify-center text-lg font-bold">🏷️</div>
+        <div>
+          <span class="text-3xs font-bold text-slate-400 uppercase tracking-wider block">Estampas / Op.</span>
+          <span id="cnt-estampas" class="text-lg font-extrabold text-slate-800">0</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- PESTAÑAS DE CATÁLOGOS -->
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+      <div class="border-b border-slate-200 bg-slate-50 flex overflow-x-auto text-xs font-semibold text-slate-500 no-scrollbar">
+        <button onclick="cambiarPestana('inspectores')" id="tab-btn-inspectores" class="px-5 py-3.5 whitespace-nowrap transition tab-active flex items-center gap-2">
+          <span>👷</span> Inspectores de Calidad
+        </button>
+        <button onclick="cambiarPestana('almacenes')" id="tab-btn-almacenes" class="px-5 py-3.5 whitespace-nowrap transition flex items-center gap-2">
+          <span>🏭</span> Almacenes y Celdas
+        </button>
+        <button onclick="cambiarPestana('partes')" id="tab-btn-partes" class="px-5 py-3.5 whitespace-nowrap transition flex items-center gap-2">
+          <span>🧩</span> Números de Parte & Subensambles
+        </button>
+        <button onclick="cambiarPestana('defectos')" id="tab-btn-defectos" class="px-5 py-3.5 whitespace-nowrap transition flex items-center gap-2">
+          <span>⚠️</span> No Conformancias (Defectos)
+        </button>
+        <button onclick="cambiarPestana('estampas')" id="tab-btn-estampas" class="px-5 py-3.5 whitespace-nowrap transition flex items-center gap-2">
+          <span>🏷️</span> Estampas y Operadores
+        </button>
+      </div>
+
+      <!-- BARRA DE ACCIONES DE LA TABLA -->
+      <div class="p-4 border-b border-slate-100 flex flex-col sm:flex-row justify-between items-center gap-3 bg-white">
+        <div class="relative w-full sm:w-80">
+          <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400 text-xs">🔍</span>
+          <input type="text" id="input-busqueda-catalogo" oninput="filtrarTablaActual()" placeholder="Buscar en catálogo activo..." class="w-full pl-9 pr-3 py-2 border rounded-xl text-xs bg-slate-50 focus:bg-white focus:outline-none focus:border-[#0047AB]">
+        </div>
+        <div class="flex items-center gap-2 w-full sm:w-auto">
+          <select id="filtro-estado-catalogo" onchange="filtrarTablaActual()" class="border p-2 rounded-xl text-xs bg-slate-50 font-medium">
+            <option value="todos">Todos los Estados</option>
+            <option value="Activo" selected>Solo Activos</option>
+            <option value="Inactivo">Solo Inactivos</option>
+          </select>
+          <button onclick="abrirModalAgregar()" class="bg-[#0047AB] hover:bg-blue-800 text-white px-4 py-2 rounded-xl text-xs font-bold shadow flex items-center gap-1.5 whitespace-nowrap">
+            <span>➕</span> Agregar Registro
+          </button>
+        </div>
+      </div>
+
+      <!-- CONTENEDOR DE TABLAS -->
+      <div class="overflow-x-auto">
+        <!-- TABLA 1: INSPECTORES -->
+        <table id="tabla-inspectores" class="w-full text-left text-xs">
+          <thead class="bg-slate-50 border-b text-slate-500 font-bold uppercase text-3xs">
+            <tr>
+              <th class="p-3">Nombre Inspector</th>
+              <th class="p-3">Locación / Área</th>
+              <th class="p-3">Estatus</th>
+              <th class="p-3 text-right">Acciones</th>
+            </tr>
+          </thead>
+          <tbody id="tbody-inspectores" class="divide-y divide-slate-100"></tbody>
+        </table>
+
+        <!-- TABLA 2: ALMACENES -->
+        <table id="tabla-almacenes" class="w-full text-left text-xs hidden">
+          <thead class="bg-slate-50 border-b text-slate-500 font-bold uppercase text-3xs">
+            <tr>
+              <th class="p-3">Código Almacén</th>
+              <th class="p-3">Nombre del Almacén / Celda</th>
+              <th class="p-3">Estatus</th>
+              <th class="p-3 text-right">Acciones</th>
+            </tr>
+          </thead>
+          <tbody id="tbody-almacenes" class="divide-y divide-slate-100"></tbody>
+        </table>
+
+        <!-- TABLA 3: NÚMEROS DE PARTE -->
+        <table id="tabla-partes" class="w-full text-left text-xs hidden">
+          <thead class="bg-slate-50 border-b text-slate-500 font-bold uppercase text-3xs">
+            <tr>
+              <th class="p-3">Número de Parte</th>
+              <th class="p-3">Subensamble Asociado</th>
+              <th class="p-3">Estatus</th>
+              <th class="p-3 text-right">Acciones</th>
+            </tr>
+          </thead>
+          <tbody id="tbody-partes" class="divide-y divide-slate-100"></tbody>
+        </table>
+
+        <!-- TABLA 4: NO CONFORMANCIAS -->
+        <table id="tabla-defectos" class="w-full text-left text-xs hidden">
+          <thead class="bg-slate-50 border-b text-slate-500 font-bold uppercase text-3xs">
+            <tr>
+              <th class="p-3">Descripción de No Conformancia</th>
+              <th class="p-3">Categoría Defecto</th>
+              <th class="p-3">Estatus</th>
+              <th class="p-3 text-right">Acciones</th>
+            </tr>
+          </thead>
+          <tbody id="tbody-defectos" class="divide-y divide-slate-100"></tbody>
+        </table>
+
+        <!-- TABLA 5: ESTAMPAS Y OPERADORES -->
+        <table id="tabla-estampas" class="w-full text-left text-xs hidden">
+          <thead class="bg-slate-50 border-b text-slate-500 font-bold uppercase text-3xs">
+            <tr>
+              <th class="p-3">ID Estampa</th>
+              <th class="p-3">Medida</th>
+              <th class="p-3">Área Producción</th>
+              <th class="p-3">Turno</th>
+              <th class="p-3">Núm. Empleado</th>
+              <th class="p-3">Nombre Operador</th>
+              <th class="p-3">Estatus</th>
+              <th class="p-3 text-right">Acciones</th>
+            </tr>
+          </thead>
+          <tbody id="tbody-estampas" class="divide-y divide-slate-100"></tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+
+  <!-- MODAL DINÁMICO DE EDICIÓN / ALTA -->
+  <div id="modal-form-catalogo" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-white rounded-3xl max-w-md w-full shadow-2xl overflow-hidden border border-slate-200">
+      <div class="bg-[#0047AB] text-white p-4 flex justify-between items-center">
+        <h3 id="modal-titulo" class="font-bold text-sm">Agregar Registro</h3>
+        <button onclick="cerrarModalForm()" class="text-blue-100 hover:text-white font-bold text-lg">✕</button>
+      </div>
+      <form id="form-registro" onsubmit="guardarRegistroCatalogo(event)" class="p-5 space-y-4 text-xs">
+        <div id="modal-campos" class="space-y-3"></div>
+        <div class="pt-3 flex gap-2 border-t">
+          <button type="button" onclick="cerrarModalForm()" class="flex-1 bg-slate-100 text-slate-700 py-2.5 rounded-xl font-bold hover:bg-slate-200">Cancelar</button>
+          <button type="submit" class="flex-1 bg-[#0047AB] text-white py-2.5 rounded-xl font-bold hover:bg-blue-800 shadow">Guardar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- SCRIPT LÓGICA MÁSTER DE CATÁLOGOS -->
+  <script>
+    const URL_WEBHOOK_EXCEL = "https://script.google.com/macros/s/AKfycbx2d6aWR2vrmtoJH-66nXJIJgQoaOfldrm8P37BEyhxiYwieYIuZyYLK1NjEYbmo7-l/exec";
+
+    // CATÁLOGOS INICIALES EXTRAÍDOS DE FUENTES OFICIALES (tabla a llenar)
+    const catalogosDefecto = {
+      inspectores: [
+        { id: 1, inspector: "Rene Rodriguez", locacion: "EORWK", Estado: "Activo" },
+        { id: 2, inspector: "Elsa Helmes", locacion: "HORWK", Estado: "Activo" },
+        { id: 3, inspector: "Angel Cruz", locacion: "ABS", Estado: "Activo" },
+        { id: 4, inspector: "Angel Esteban", locacion: "JORWK", Estado: "Activo" },
+        { id: 5, inspector: "Carlos Hdz", locacion: "F4RWK", Estado: "Activo" },
+        { id: 6, inspector: "Julia Garcia", locacion: "F4RWK", Estado: "Activo" },
+        { id: 7, inspector: "Adan Vargas", locacion: "F4RWK", Estado: "Activo" },
+        { id: 8, inspector: "Angel Bocanegra", locacion: "F4RWK", Estado: "Activo" }
+      ],
+      almacenes: [
+        { id: 1, Warehouse: "204121", name: "Coil Pack Fabrication", Status: "Activo" },
+        { id: 2, Warehouse: "204122", name: "Foundry", Status: "Activo" },
+        { id: 3, Warehouse: "204123", name: "Cold Plate Finishing", Status: "Activo" },
+        { id: 4, Warehouse: "204124", name: "Pickle/Passivate for Machines", Status: "Activo" },
+        { id: 5, Warehouse: "204141", name: "Cold Plate Foaming", Status: "Activo" },
+        { id: 6, Warehouse: "204401", name: "Tanks Fabrication", Status: "Activo" },
+        { id: 7, Warehouse: "204421", name: "Agitator Fabrication", Status: "Activo" },
+        { id: 8, Warehouse: "204441", name: "Sheet Metal Fabrication", Status: "Activo" },
+        { id: 9, Warehouse: "205101", name: "Ice Cool Assy High runners", Status: "Activo" },
+        { id: 10, Warehouse: "205121", name: "Ice Drink Work Center ED1XX", Status: "Activo" },
+        { id: 11, Warehouse: "205122", name: "Ice Drink Assy ED300", Status: "Activo" },
+        { id: 12, Warehouse: "205123", name: "Ice Drink Assembly FF/CF", Status: "Activo" },
+        { id: 13, Warehouse: "205124", name: "Ice Drink Kits Assembly", Status: "Activo" },
+        { id: 14, Warehouse: "205126", name: "Ice Drink Work Center ED2XX", Status: "Activo" },
+        { id: 15, Warehouse: "205127", name: "Ice Drink Work Center IDC2XX", Status: "Activo" },
+        { id: 16, Warehouse: "205141", name: "IDC PRO Assembly", Status: "Activo" },
+        { id: 17, Warehouse: "205161", name: "ABS 2.0 Assembly", Status: "Activo" },
+        { id: 18, Warehouse: "RE1CP1", name: "Reynosa PL1 Cold Plate", Status: "Activo" },
+        { id: 19, Warehouse: "RE1CPR", name: "Reynosa PL1 Cold Plate Rack", Status: "Activo" },
+        { id: 20, Warehouse: "RE1Q01", name: "Reynosa PL1 Disposition Area", Status: "Activo" }
+      ],
+      partes: [
+        { id: 1, parte: "41310", subensamble: "620064214", status: "Activo" },
+        { id: 2, parte: "620407083", subensamble: "620407062", status: "Activo" },
+        { id: 3, parte: "29311", subensamble: "41269", status: "Activo" },
+        { id: 4, parte: "620407085", subensamble: "620407044", status: "Activo" },
+        { id: 5, parte: "620407098", subensamble: "620407016", status: "Activo" },
+        { id: 6, parte: "620063286", subensamble: "620063285", status: "Activo" },
+        { id: 7, parte: "620407099", subensamble: "620407015", status: "Activo" },
+        { id: 8, parte: "741000412", subensamble: "741000412", status: "Activo" },
+        { id: 9, parte: "741000392", subensamble: "741000392", status: "Activo" },
+        { id: 10, parte: "620407084", subensamble: "620407057", status: "Activo" }
+      ],
+      defectos: [
+        { id: 1, defecto: "Agitador doblado", categoria: "Funcional", status: "Activo" },
+        { id: 2, defecto: "Bin con fuga", categoria: "Funcional", status: "Activo" },
+        { id: 3, defecto: "cara de hielo fuera de espec", categoria: "Dimensional", status: "Activo" },
+        { id: 4, defecto: "certificacion ausente", categoria: "Documental", status: "Activo" },
+        { id: 5, defecto: "codigo de rastreabilidad ausente", categoria: "Documental", status: "Activo" },
+        { id: 6, defecto: "Coils Contaminados", categoria: "Visual", status: "Activo" },
+        { id: 7, defecto: "dañado en proceso", categoria: "Ensamble", status: "Activo" },
+        { id: 8, defecto: "Dañado por manipulacion", categoria: "Ensamble", status: "Activo" },
+        { id: 9, defecto: "Fuga en linea", categoria: "Funcional", status: "Activo" },
+        { id: 10, defecto: "Rebaba de aluminio en linea", categoria: "Visual", status: "Activo" }
+      ],
+      estampas: [
+        { id: 1, estampa: "5CHICA", medida: "CHICA", area: "HARD PLUMB", turno: "LJNC", numEmp: "1082179", nombre: "Rufino Perez Huerta", status: "Activo" },
+        { id: 2, estampa: "A3CHICA", medida: "CHICA", area: "DOBLEZ,TALADRO", turno: "LJNC", numEmp: "7481", nombre: "Jireh Emanuel De Angel Bautista", status: "Activo" },
+        { id: 3, estampa: "C3CHICA", medida: "CHICA", area: "CABINAS", turno: "LJNC", numEmp: "7652", nombre: "Jesus Alejandro Verdin Tinajero", status: "Activo" },
+        { id: 4, estampa: "C4MED", medida: "MED", area: "CABINAS", turno: "VSD1", numEmp: "7568", nombre: "Miguel Sarmiento Portillo", status: "Activo" },
+        { id: 5, estampa: "2GRANDE", medida: "GRANDE", area: "FUNDICION", turno: "LJNC", numEmp: "1083200", nombre: "Luis Miguel De La Cruz Osorio", status: "Activo" }
+      ]
+    };
+
+    let pestanaActiva = 'inspectores';
+    let idEditando = null;
+    let baseCatalogos = JSON.parse(localStorage.getItem('db_catalogos_v1') || JSON.stringify(catalogosDefecto));
+
+    document.addEventListener('DOMContentLoaded', () => {
+      renderizarPestanaActual();
+      actualizarContadores();
+    });
+
+    function cambiarPestana(target) {
+      pestanaActiva = target;
+      document.querySelectorAll('.tab-active').forEach(b => b.classList.remove('tab-active'));
+      document.getElementById(`tab-btn-${target}`).classList.add('tab-active');
+
+      document.querySelectorAll('main table').forEach(t => t.classList.add('hidden'));
+      document.getElementById(`tabla-${target}`).classList.remove('hidden');
+
+      renderizarPestanaActual();
+    }
+
+    function renderizarPestanaActual() {
+      const q = (document.getElementById('input-busqueda-catalogo').value || '').toLowerCase();
+      const e = document.getElementById('filtro-estado-catalogo').value;
+
+      if (pestanaActiva === 'inspectores') {
+        const tbody = document.getElementById('tbody-inspectores');
+        tbody.innerHTML = '';
+        const list = baseCatalogos.inspectores.filter(i => {
+          const matchQ = i.inspector.toLowerCase().includes(q) || i.locacion.toLowerCase().includes(q);
+          const matchE = e === 'todos' || i.Estado === e;
+          return matchQ && matchE;
+        });
+
+        list.forEach(item => {
+          tbody.innerHTML += `
+            <tr class="hover:bg-slate-50">
+              <td class="p-3 font-bold text-slate-800">${item.inspector}</td>
+              <td class="p-3 font-mono text-slate-600">${item.locacion}</td>
+              <td class="p-3"><span class="px-2 py-0.5 rounded-full text-3xs font-extrabold ${item.Estado === 'Activo' ? 'bg-emerald-100 text-emerald-700':'bg-rose-100 text-rose-700'}">${item.Estado}</span></td>
+              <td class="p-3 text-right space-x-1">
+                <button onclick="editarRegistro(${item.id})" class="px-2 py-1 bg-blue-50 text-[#0047AB] rounded-lg font-bold hover:bg-blue-100">✏️ Editar</button>
+                <button onclick="alternarEstado(${item.id})" class="px-2 py-1 bg-slate-100 text-slate-700 rounded-lg font-bold hover:bg-slate-200">🔄 Estado</button>
+              </td>
+            </tr>`;
+        });
+      } else if (pestanaActiva === 'almacenes') {
+        const tbody = document.getElementById('tbody-almacenes');
+        tbody.innerHTML = '';
+        const list = baseCatalogos.almacenes.filter(i => {
+          const matchQ = i.Warehouse.toLowerCase().includes(q) || i.name.toLowerCase().includes(q);
+          const matchE = e === 'todos' || i.Status === e;
+          return matchQ && matchE;
+        });
+
+        list.forEach(item => {
+          tbody.innerHTML += `
+            <tr class="hover:bg-slate-50">
+              <td class="p-3 font-mono font-bold text-[#0047AB]">${item.Warehouse}</td>
+              <td class="p-3 font-semibold text-slate-800">${item.name}</td>
+              <td class="p-3"><span class="px-2 py-0.5 rounded-full text-3xs font-extrabold ${item.Status === 'Activo' ? 'bg-emerald-100 text-emerald-700':'bg-rose-100 text-rose-700'}">${item.Status}</span></td>
+              <td class="p-3 text-right space-x-1">
+                <button onclick="editarRegistro(${item.id})" class="px-2 py-1 bg-blue-50 text-[#0047AB] rounded-lg font-bold hover:bg-blue-100">✏️ Editar</button>
+                <button onclick="alternarEstado(${item.id})" class="px-2 py-1 bg-slate-100 text-slate-700 rounded-lg font-bold hover:bg-slate-200">🔄 Estado</button>
+              </td>
+            </tr>`;
+        });
+      } else if (pestanaActiva === 'partes') {
+        const tbody = document.getElementById('tbody-partes');
+        tbody.innerHTML = '';
+        const list = baseCatalogos.partes.filter(i => {
+          const matchQ = i.parte.toLowerCase().includes(q) || i.subensamble.toLowerCase().includes(q);
+          const matchE = e === 'todos' || i.status === e;
+          return matchQ && matchE;
+        });
+
+        list.forEach(item => {
+          tbody.innerHTML += `
+            <tr class="hover:bg-slate-50">
+              <td class="p-3 font-mono font-bold text-slate-800">${item.parte}</td>
+              <td class="p-3 font-mono text-emerald-700 font-semibold">${item.subensamble}</td>
+              <td class="p-3"><span class="px-2 py-0.5 rounded-full text-3xs font-extrabold ${item.status === 'Activo' ? 'bg-emerald-100 text-emerald-700':'bg-rose-100 text-rose-700'}">${item.status}</span></td>
+              <td class="p-3 text-right space-x-1">
+                <button onclick="editarRegistro(${item.id})" class="px-2 py-1 bg-blue-50 text-[#0047AB] rounded-lg font-bold hover:bg-blue-100">✏️ Editar</button>
+                <button onclick="alternarEstado(${item.id})" class="px-2 py-1 bg-slate-100 text-slate-700 rounded-lg font-bold hover:bg-slate-200">🔄 Estado</button>
+              </td>
+            </tr>`;
+        });
+      } else if (pestanaActiva === 'defectos') {
+        const tbody = document.getElementById('tbody-defectos');
+        tbody.innerHTML = '';
+        const list = baseCatalogos.defectos.filter(i => {
+          const matchQ = i.defecto.toLowerCase().includes(q) || i.categoria.toLowerCase().includes(q);
+          const matchE = e === 'todos' || i.status === e;
+          return matchQ && matchE;
+        });
+
+        list.forEach(item => {
+          tbody.innerHTML += `
+            <tr class="hover:bg-slate-50">
+              <td class="p-3 font-bold text-slate-800">${item.defecto}</td>
+              <td class="p-3 text-slate-600 font-medium">${item.categoria}</td>
+              <td class="p-3"><span class="px-2 py-0.5 rounded-full text-3xs font-extrabold ${item.status === 'Activo' ? 'bg-emerald-100 text-emerald-700':'bg-rose-100 text-rose-700'}">${item.status}</span></td>
+              <td class="p-3 text-right space-x-1">
+                <button onclick="editarRegistro(${item.id})" class="px-2 py-1 bg-blue-50 text-[#0047AB] rounded-lg font-bold hover:bg-blue-100">✏️ Editar</button>
+                <button onclick="alternarEstado(${item.id})" class="px-2 py-1 bg-slate-100 text-slate-700 rounded-lg font-bold hover:bg-slate-200">🔄 Estado</button>
+              </td>
+            </tr>`;
+        });
+      } else if (pestanaActiva === 'estampas') {
+        const tbody = document.getElementById('tbody-estampas');
+        tbody.innerHTML = '';
+        const list = baseCatalogos.estampas.filter(i => {
+          const matchQ = i.estampa.toLowerCase().includes(q) || i.nombre.toLowerCase().includes(q) || i.area.toLowerCase().includes(q);
+          const matchE = e === 'todos' || i.status === e;
+          return matchQ && matchE;
+        });
+
+        list.forEach(item => {
+          tbody.innerHTML += `
+            <tr class="hover:bg-slate-50">
+              <td class="p-3 font-mono font-bold text-purple-700">${item.estampa}</td>
+              <td class="p-3 text-slate-500">${item.medida}</td>
+              <td class="p-3 font-semibold text-slate-700">${item.area}</td>
+              <td class="p-3 font-mono">${item.turno}</td>
+              <td class="p-3 font-mono text-slate-500">${item.numEmp}</td>
+              <td class="p-3 font-bold text-slate-800">${item.nombre}</td>
+              <td class="p-3"><span class="px-2 py-0.5 rounded-full text-3xs font-extrabold ${item.status === 'Activo' ? 'bg-emerald-100 text-emerald-700':'bg-rose-100 text-rose-700'}">${item.status}</span></td>
+              <td class="p-3 text-right space-x-1">
+                <button onclick="editarRegistro(${item.id})" class="px-2 py-1 bg-blue-50 text-[#0047AB] rounded-lg font-bold hover:bg-blue-100">✏️ Editar</button>
+                <button onclick="alternarEstado(${item.id})" class="px-2 py-1 bg-slate-100 text-slate-700 rounded-lg font-bold hover:bg-slate-200">🔄 Estado</button>
+              </td>
+            </tr>`;
+        });
+      }
+    }
+
+    function filtrarTablaActual() {
+      renderizarPestanaActual();
+    }
+
+    function actualizarContadores() {
+      document.getElementById('cnt-inspectores').innerText = baseCatalogos.inspectores.length;
+      document.getElementById('cnt-almacenes').innerText = baseCatalogos.almacenes.length;
+      document.getElementById('cnt-partes').innerText = baseCatalogos.partes.length;
+      document.getElementById('cnt-defectos').innerText = baseCatalogos.defectos.length;
+      document.getElementById('cnt-estampas').innerText = baseCatalogos.estampas.length;
+    }
+
+    function guardarBaseDatosLocal() {
+      localStorage.setItem('db_catalogos_v1', JSON.stringify(baseCatalogos));
+      actualizarContadores();
+      renderizarPestanaActual();
+    }
+
+    function alternarEstado(id) {
+      const arr = baseCatalogos[pestanaActiva];
+      const item = arr.find(x => x.id === id);
+      if (item) {
+        if (pestanaActiva === 'inspectores') item.Estado = item.Estado === 'Activo' ? 'Inactivo' : 'Activo';
+        else if (pestanaActiva === 'almacenes') item.Status = item.Status === 'Activo' ? 'Inactivo' : 'Activo';
+        else item.status = (item.status === 'Activo' || item.status === 'activo') ? 'Inactivo' : 'Activo';
+        guardarBaseDatosLocal();
+      }
+    }
+
+    function abrirModalAgregar() {
+      idEditando = null;
+      document.getElementById('modal-titulo').innerText = `Agregar a ${pestanaActiva.toUpperCase()}`;
+      construirFormularioModal();
+      document.getElementById('modal-form-catalogo').classList.remove('hidden');
+    }
+
+    function editarRegistro(id) {
+      idEditando = id;
+      document.getElementById('modal-titulo').innerText = `Editar en ${pestanaActiva.toUpperCase()}`;
+      construirFormularioModal(id);
+      document.getElementById('modal-form-catalogo').classList.remove('hidden');
+    }
+
+    function cerrarModalForm() {
+      document.getElementById('modal-form-catalogo').classList.add('hidden');
+    }
+
+    function construirFormularioModal(id = null) {
+      const container = document.getElementById('modal-campos');
+      container.innerHTML = '';
+      const data = id ? baseCatalogos[pestanaActiva].find(x => x.id === id) : {};
+
+      if (pestanaActiva === 'inspectores') {
+        container.innerHTML = `
+          <div><label class="block font-bold mb-1">Nombre Inspector</label><input type="text" id="f-inspector" value="${data.inspector || ''}" required class="w-full border p-2 rounded-xl"></div>
+          <div><label class="block font-bold mb-1">Locación / Área</label><input type="text" id="f-locacion" value="${data.locacion || ''}" required class="w-full border p-2 rounded-xl"></div>
+        `;
+      } else if (pestanaActiva === 'almacenes') {
+        container.innerHTML = `
+          <div><label class="block font-bold mb-1">Código Almacén (Warehouse)</label><input type="text" id="f-warehouse" value="${data.Warehouse || ''}" required class="w-full border p-2 rounded-xl"></div>
+          <div><label class="block font-bold mb-1">Nombre de Celda / Almacén</label><input type="text" id="f-name" value="${data.name || ''}" required class="w-full border p-2 rounded-xl"></div>
+        `;
+      } else if (pestanaActiva === 'partes') {
+        container.innerHTML = `
+          <div><label class="block font-bold mb-1">Número de Parte</label><input type="text" id="f-parte" value="${data.parte || ''}" required class="w-full border p-2 rounded-xl"></div>
+          <div><label class="block font-bold mb-1">Subensamble Asociado</label><input type="text" id="f-subensamble" value="${data.subensamble || ''}" required class="w-full border p-2 rounded-xl"></div>
+        `;
+      } else if (pestanaActiva === 'defectos') {
+        container.innerHTML = `
+          <div><label class="block font-bold mb-1">No Conformancia</label><input type="text" id="f-defecto" value="${data.defecto || ''}" required class="w-full border p-2 rounded-xl"></div>
+          <div><label class="block font-bold mb-1">Categoría Defecto</label>
+            <select id="f-categoria" class="w-full border p-2 rounded-xl font-bold">
+              <option value="Visual" ${data.categoria === 'Visual'?'selected':''}>Visual</option>
+              <option value="Funcional" ${data.categoria === 'Funcional'?'selected':''}>Funcional</option>
+              <option value="Dimensional" ${data.categoria === 'Dimensional'?'selected':''}>Dimensional</option>
+              <option value="Ensamble" ${data.categoria === 'Ensamble'?'selected':''}>Ensamble</option>
+              <option value="Documental" ${data.categoria === 'Documental'?'selected':''}>Documental</option>
+            </select>
+          </div>
+        `;
+      } else if (pestanaActiva === 'estampas') {
+        container.innerHTML = `
+          <div><label class="block font-bold mb-1">ID Estampa</label><input type="text" id="f-estampa" value="${data.estampa || ''}" required class="w-full border p-2 rounded-xl"></div>
+          <div class="grid grid-cols-2 gap-2">
+            <div><label class="block font-bold mb-1">Medida</label><input type="text" id="f-medida" value="${data.medida || 'MED'}" class="w-full border p-2 rounded-xl"></div>
+            <div><label class="block font-bold mb-1">Turno</label><input type="text" id="f-turno" value="${data.turno || 'LJNC'}" class="w-full border p-2 rounded-xl"></div>
+          </div>
+          <div><label class="block font-bold mb-1">Área Producción</label><input type="text" id="f-area" value="${data.area || ''}" required class="w-full border p-2 rounded-xl"></div>
+          <div><label class="block font-bold mb-1">Núm. Empleado</label><input type="text" id="f-numEmp" value="${data.numEmp || ''}" required class="w-full border p-2 rounded-xl"></div>
+          <div><label class="block font-bold mb-1">Nombre Operador</label><input type="text" id="f-nombre" value="${data.nombre || ''}" required class="w-full border p-2 rounded-xl"></div>
+        `;
+      }
+    }
+
+    function guardarRegistroCatalogo(e) {
+      e.preventDefault();
+      const arr = baseCatalogos[pestanaActiva];
+
+      if (idEditando) {
+        const item = arr.find(x => x.id === idEditando);
+        if (pestanaActiva === 'inspectores') {
+          item.inspector = document.getElementById('f-inspector').value;
+          item.locacion = document.getElementById('f-locacion').value;
+        } else if (pestanaActiva === 'almacenes') {
+          item.Warehouse = document.getElementById('f-warehouse').value;
+          item.name = document.getElementById('f-name').value;
+        } else if (pestanaActiva === 'partes') {
+          item.parte = document.getElementById('f-parte').value;
+          item.subensamble = document.getElementById('f-subensamble').value;
+        } else if (pestanaActiva === 'defectos') {
+          item.defecto = document.getElementById('f-defecto').value;
+          item.categoria = document.getElementById('f-categoria').value;
+        } else if (pestanaActiva === 'estampas') {
+          item.estampa = document.getElementById('f-estampa').value;
+          item.medida = document.getElementById('f-medida').value;
+          item.area = document.getElementById('f-area').value;
+          item.turno = document.getElementById('f-turno').value;
+          item.numEmp = document.getElementById('f-numEmp').value;
+          item.nombre = document.getElementById('f-nombre').value;
+        }
+      } else {
+        const newId = arr.length ? Math.max(...arr.map(x=>x.id)) + 1 : 1;
+        if (pestanaActiva === 'inspectores') {
+          arr.push({ id: newId, inspector: document.getElementById('f-inspector').value, locacion: document.getElementById('f-locacion').value, Estado: 'Activo' });
+        } else if (pestanaActiva === 'almacenes') {
+          arr.push({ id: newId, Warehouse: document.getElementById('f-warehouse').value, name: document.getElementById('f-name').value, Status: 'Activo' });
+        } else if (pestanaActiva === 'partes') {
+          arr.push({ id: newId, parte: document.getElementById('f-parte').value, subensamble: document.getElementById('f-subensamble').value, status: 'Activo' });
+        } else if (pestanaActiva === 'defectos') {
+          arr.push({ id: newId, defecto: document.getElementById('f-defecto').value, categoria: document.getElementById('f-categoria').value, status: 'Activo' });
+        } else if (pestanaActiva === 'estampas') {
+          arr.push({
+            id: newId,
+            estampa: document.getElementById('f-estampa').value,
+            medida: document.getElementById('f-medida').value,
+            area: document.getElementById('f-area').value,
+            turno: document.getElementById('f-turno').value,
+            numEmp: document.getElementById('f-numEmp').value,
+            nombre: document.getElementById('f-nombre').value,
+            status: 'Activo'
+          });
+        }
+      }
+
+      guardarBaseDatosLocal();
+      cerrarModalForm();
+      alert('✅ Registro guardado con éxito.');
+    }
+
+    function sincronizarCatalogosConNube() {
+      if (!URL_WEBHOOK_EXCEL || URL_WEBHOOK_EXCEL.includes('EJEMPLO')) {
+        alert('⚠️ Configura primero la URL del Webhook de Google Apps Script.');
+        return;
+      }
+
+      const payload = {
+        tipoAccion: 'sincronizarCatalogos',
+        catalogos: baseCatalogos
+      };
+
+      fetch(URL_WEBHOOK_EXCEL, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      }).then(() => {
+        alert('✅ Solicitud de sincronización de catálogos enviada a Google Sheets.');
+      }).catch(err => {
+        alert('⚠️ Error al conectar con la Nube: ' + err.toString());
+      });
+    }
+
+    function exportarCatalogosJSON() {
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(baseCatalogos, null, 2));
+      const downloadAnchor = document.createElement('a');
+      downloadAnchor.setAttribute("href", dataStr);
+      downloadAnchor.setAttribute("download", "catalogos_calidad_base.json");
+      document.body.appendChild(downloadAnchor);
+      downloadAnchor.click();
+      downloadAnchor.remove();
+    }
+  </script>
+</body>
+</html>
