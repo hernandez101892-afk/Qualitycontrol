@@ -382,7 +382,11 @@
                 <option value="Rene Rodriguez">Rene Rodriguez</option>
                 <option value="Elsa Helmes">Elsa Helmes</option>
                 <option value="Angel Cruz">Angel Cruz</option>
+                <option value="Angel Esteban">Angel Esteban</option>
                 <option value="Carlos Hdz">Carlos Hdz</option>
+                <option value="Julia Garcia">Julia Garcia</option>
+                <option value="Adan Vargas">Adan Vargas</option>
+                <option value="Angel Bocanegra">Angel Bocanegra</option>
               </select>
             </div>
 
@@ -539,7 +543,16 @@
           <input type="text" id="reg-motivo-cambio" placeholder="Justifica la razón del cambio..." class="w-full border p-2 rounded-lg bg-white">
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">Tipo de Orden *</label>
+            <select id="reg-tipo-orden" required class="w-full border p-2.5 rounded-xl bg-slate-50 font-bold">
+              <option value="Proceso">Proceso</option>
+              <option value="Cliente interno">Cliente interno</option>
+              <option value="Proveedor">Proveedor</option>
+            </select>
+          </div>
+
           <div>
             <label class="block font-bold text-slate-700 mb-1">Orden OC (OC + 7 números) *</label>
             <input type="text" id="reg-oc" required placeholder="OC1042851" class="w-full border p-2.5 rounded-xl bg-slate-50 font-mono font-bold">
@@ -549,11 +562,27 @@
             <label class="block font-bold text-slate-700 mb-1">Número de Parte *</label>
             <select id="reg-parte" onchange="autocompletarSubensamble()" required class="w-full border p-2.5 rounded-xl bg-slate-50 font-bold">
               <option value="">Seleccionar Num Parte</option>
-              <option value="41310">41310</option>
-              <option value="620407083">620407083</option>
-              <option value="29311">29311</option>
-              <option value="620407085">620407085</option>
-              <option value="620407084">620407084</option>
+<option value="41310">41310</option>
+<option value="620407083">620407083</option>
+<option value="29311">29311</option>
+<option value="620407085">620407085</option>
+<option value="620407098">620407098</option>
+<option value="620063286">620063286</option>
+<option value="620407099">620407099</option>
+<option value="741000412">741000412</option>
+<option value="741000392">741000392</option>
+<option value="741000202">741000202</option>
+<option value="741000327">741000327</option>
+<option value="741000393">741000393</option>
+<option value="741000379">741000379</option>
+<option value="620407058">620407058</option>
+<option value="620407044">620407044</option>
+<option value="41269">41269</option>
+<option value="620407057">620407057</option>
+<option value="740002227">740002227</option>
+<option value="620407062">620407062</option>
+<option value="620401601">620401601</option>
+<option value="41309">41309</option>
             </select>
           </div>
 
@@ -574,12 +603,33 @@
             <label class="block font-bold text-slate-700 mb-1">No Conformancia / Defecto *</label>
             <select id="reg-defecto" required class="w-full border p-2.5 rounded-xl bg-slate-50 font-bold">
               <option value="">Seleccionar Defecto</option>
-              <option value="Agitador doblado">Agitador doblado</option>
-              <option value="Bin con fuga">Bin con fuga</option>
-              <option value="Dañado en proceso">Dañado en proceso</option>
-              <option value="Fuga en linea">Fuga en linea</option>
-              <option value="Porosidad en materia prima">Porosidad en materia prima</option>
-              <option value="Falta de ajuste en maneral">Falta de ajuste en maneral</option>
+<option value="Agitador doblado">Agitador doblado</option>
+<option value="Bin con fuga">Bin con fuga</option>
+<option value="cara de hielo fuera de espec">cara de hielo fuera de espec</option>
+<option value="certificacion ausente">certificacion ausente</option>
+<option value="codigo de rastreabilidad ausente">codigo de rastreabilidad ausente</option>
+<option value="Coils Contaminados">Coils Contaminados</option>
+<option value="Contaminado con pegamento de cinta">Contaminado con pegamento de cinta</option>
+<option value="dañado en proceso">dañado en proceso</option>
+<option value="Dañado por manipulacion">Dañado por manipulacion</option>
+<option value="Daño en cara de hielo">Daño en cara de hielo</option>
+<option value="Daño en transporte">Daño en transporte</option>
+<option value="Drenaje con mal acabado">Drenaje con mal acabado</option>
+<option value="Drenaje con rebaba de aluminio">Drenaje con rebaba de aluminio</option>
+<option value="Drenaje con rebaba de soldadura">Drenaje con rebaba de soldadura</option>
+<option value="Drenaje desalineado">Drenaje desalineado</option>
+<option value="Drenaje obstruido">Drenaje obstruido</option>
+<option value="Drenaje obstruido por pasta">Drenaje obstruido por pasta</option>
+<option value="DRENAJE POR POROS">DRENAJE POR POROS</option>
+<option value="Etiqueta ausente">Etiqueta ausente</option>
+<option value="Fitting sin soldar">Fitting sin soldar</option>
+<option value="Foam encogido">Foam encogido</option>
+<option value="Fuga en fitting">Fuga en fitting</option>
+<option value="Fuga en linea">Fuga en linea</option>
+<option value="Fuga interna">Fuga interna</option>
+<option value="Golpe en cara de hielo">Golpe en cara de hielo</option>
+<option value="Poro en drenaje">Poro en drenaje</option>
+<option value="Rebaba de aluminio en linea">Rebaba de aluminio en linea</option>
             </select>
           </div>
 
@@ -587,10 +637,26 @@
             <label class="block font-bold text-slate-700 mb-1">Almacén Origen *</label>
             <select id="reg-almacen" onchange="autocompletarAlmacenNombre()" required class="w-full border p-2.5 rounded-xl bg-slate-50 font-bold">
               <option value="">Seleccionar Almacén</option>
-              <option value="204121">204121 - Coil Pack Fabrication</option>
-              <option value="204122">204122 - Foundry</option>
-              <option value="204123">204123 - Cold Plate Finishing</option>
-              <option value="205161">205161 - ABS 2.0 Assembly</option>
+<option value="204121">204121 - Coil Pack Fabrication</option>
+<option value="204122">204122 - Foundry</option>
+<option value="204123">204123 - Cold Plate Finishing</option>
+<option value="204124">204124 - Pickle/Passivate for Machines</option>
+<option value="204141">204141 - Cold Plate Foaming</option>
+<option value="204401">204401 - Tanks Fabrication</option>
+<option value="204421">204421 - Agitator Fabrication</option>
+<option value="204441">204441 - Sheet Metal Fabrication</option>
+<option value="205101">205101 - Ice Cool Assy High runners</option>
+<option value="205121">205121 - Ice Drink Work Center ED1XX</option>
+<option value="205122">205122 - Ice Drink Assy ED300</option>
+<option value="205123">205123 - Ice Drink Assembly FF/CF</option>
+<option value="205124">205124 - Ice Drink Kits Assembly</option>
+<option value="205126">205126 - Ice Drink Work Center ED2XX</option>
+<option value="205127">205127 - Ice Drink Work Center IDC2XX</option>
+<option value="205141">205141 - IDC PRO Assembly</option>
+<option value="205161">205161 - ABS 2.0 Assembly</option>
+<option value="RE1CP1">RE1CP1 - Reynosa PL1 Cold Plate</option>
+<option value="RE1CPR">RE1CPR - Reynosa PL1 Cold Plate Rack</option>
+<option value="RE1Q01">RE1Q01 - Reynosa PL1 Disposition Area</option>
             </select>
           </div>
         </div>
@@ -647,10 +713,17 @@
               <label class="block font-bold text-slate-600 mb-1">Estampa del Operador</label>
               <select id="p2-estampa" onchange="autocompletarOperador()" class="w-full border p-2 rounded-xl bg-slate-50 font-mono">
                 <option value="">Seleccionar Estampa</option>
-                <option value="5CHICA">5CHICA - Rufino Perez Huerta</option>
-                <option value="A3CHICA">A3CHICA - Jireh Emanuel De Angel</option>
-                <option value="C4MED">C4MED - Miguel Sarmiento</option>
-                <option value="2GRANDE">2GRANDE - Luis Miguel De La Cruz</option>
+<option value="5CHICA">5CHICA - Rufino Perez Huerta</option>
+<option value="A3CHICA">A3CHICA - Jireh Emanuel De Angel Bautista</option>
+<option value="C3CHICA">C3CHICA - Jesus Alejandro Verdin Tinajero</option>
+<option value="C4MED">C4MED - Miguel Sarmiento Portillo</option>
+<option value="F2MED">F2MED - Sergio Jimenez San Sebastian</option>
+<option value="HMED">HMED - Hebert Alberto Muñoz Sanchez</option>
+<option value="NMED">NMED - Gustavo Codallos Cervantes</option>
+<option value="N1MED">N1MED - Jesus Emmanuel Amateco Alatorre</option>
+<option value="N4MED">N4MED - Javier Revoreda Reyes</option>
+<option value="RMED">RMED - Raul Ramirez Muñoz</option>
+<option value="2GRANDE">2GRANDE - Luis Miguel De La Cruz Osorio</option>
               </select>
             </div>
 
@@ -757,14 +830,64 @@
   <script>
     const URL_WEBHOOK_EXCEL = "https://script.google.com/macros/s/AKfycbylb5dnn5ge6tFjzH2c8s0CGjSzglFDsnHRPRNwNkLcrVTt_Tvp8AQjRqX9ARbSDTWE/exec";
 
-    const relacionPartes = { "41310": "620064214", "620407083": "620407062", "29311": "41269", "620407085": "620407044", "620407084": "620407057" };
-    const relacionAlmacenes = { "204121": "Coil Pack Fabrication", "204122": "Foundry", "204123": "Cold Plate Finishing", "205161": "ABS 2.0 Assembly" };
-    const relacionEstampas = {
-      "5CHICA": "Rufino Perez Huerta",
-      "A3CHICA": "Jireh Emanuel De Angel Bautista",
-      "C4MED": "Miguel Sarmiento Portillo",
-      "2GRANDE": "Luis Miguel De La Cruz Osorio"
-    };
+    let relacionPartes = {
+  "41310": "620064214",
+  "620407083": "620407062",
+  "29311": "41269",
+  "620407085": "620407044",
+  "620407098": "620407016",
+  "620063286": "620063285",
+  "620407099": "620407015",
+  "741000412": "741000412",
+  "741000392": "741000392",
+  "741000202": "741000202",
+  "741000327": "741000327",
+  "741000393": "741000393",
+  "741000379": "741000379",
+  "620407058": "620407058",
+  "620407044": "620407044",
+  "41269": "41269",
+  "620407057": "620407057",
+  "740002227": "740002227",
+  "620407062": "620407062",
+  "620401601": "620401501",
+  "41309": "620064215"
+};
+    let relacionAlmacenes = {
+  "204121": "Coil Pack Fabrication",
+  "204122": "Foundry",
+  "204123": "Cold Plate Finishing",
+  "204124": "Pickle/Passivate for Machines",
+  "204141": "Cold Plate Foaming",
+  "204401": "Tanks Fabrication",
+  "204421": "Agitator Fabrication",
+  "204441": "Sheet Metal Fabrication",
+  "205101": "Ice Cool Assy High runners",
+  "205121": "Ice Drink Work Center ED1XX",
+  "205122": "Ice Drink Assy ED300",
+  "205123": "Ice Drink Assembly FF/CF",
+  "205124": "Ice Drink Kits Assembly",
+  "205126": "Ice Drink Work Center ED2XX",
+  "205127": "Ice Drink Work Center IDC2XX",
+  "205141": "IDC PRO Assembly",
+  "205161": "ABS 2.0 Assembly",
+  "RE1CP1": "Reynosa PL1 Cold Plate",
+  "RE1CPR": "Reynosa PL1 Cold Plate Rack",
+  "RE1Q01": "Reynosa PL1 Disposition Area"
+};
+    let relacionEstampas = {
+  "5CHICA": "Rufino Perez Huerta",
+  "A3CHICA": "Jireh Emanuel De Angel Bautista",
+  "C3CHICA": "Jesus Alejandro Verdin Tinajero",
+  "C4MED": "Miguel Sarmiento Portillo",
+  "F2MED": "Sergio Jimenez San Sebastian",
+  "HMED": "Hebert Alberto Mu\u00f1oz Sanchez",
+  "NMED": "Gustavo Codallos Cervantes",
+  "N1MED": "Jesus Emmanuel Amateco Alatorre",
+  "N4MED": "Javier Revoreda Reyes",
+  "RMED": "Raul Ramirez Mu\u00f1oz",
+  "2GRANDE": "Luis Miguel De La Cruz Osorio"
+};
 
     let baseDatos = JSON.parse(localStorage.getItem('db_calidad_v3') || '{}');
     if (Object.keys(baseDatos).length === 0) {
@@ -792,6 +915,18 @@
     let folioActual = "FOL-2026-1001";
     let esModoEdicion = false;
     let fotosEvidenciaActuales = [];
+
+    function normalizarFotoUrl(url) {
+      if (!url) return '';
+      const str = String(url).trim();
+      if (str.startsWith('data:image')) return str;
+      if (str.startsWith('Error') || str.startsWith('Token') || str === 'null' || str === 'undefined') return '';
+      if (str.startsWith('http://') || str.startsWith('https://')) return str;
+      if (str.startsWith('evidencias/')) {
+        return 'https://' + 'hernandez101892-afk.github.io/Qualitycontrol/' + str;
+      }
+      return str;
+    }
 
     function autoSeleccionarRolUsuario() {
       const u = document.getElementById('login-usuario')?.value || 'Rene Rodriguez';
@@ -864,6 +999,7 @@
       cerrarModalPortal();
       aplicarPermisosRolUI();
       aplicarFiltrosYTabla();
+      cargarRegistrosDesdeNube(false);
     }
 
     function aplicarPermisosRolUI() {
@@ -923,11 +1059,113 @@
     }
 
     
+    
+    // ACTUALIZACIÓN DINÁMICA DE CATÁLOGOS DESDE NUBE / LOCALSTORAGE
+    function actualizarListasDesplegablesConCatalogos(catData) {
+      if (!catData) return;
+
+      // 1. Número de Parte & Subensambles
+      if (catData.partes && Array.isArray(catData.partes) && catData.partes.length > 0) {
+        const selParte = document.getElementById('reg-parte');
+        if (selParte) {
+          const valActual = selParte.value;
+          selParte.innerHTML = '<option value="">Seleccionar Num Parte</option>';
+          catData.partes.forEach(p => {
+            const numP = p.parte || p.num_parte;
+            const subP = p.subensamble || numP;
+            if (numP) {
+              relacionPartes[numP] = subP;
+              selParte.innerHTML += `<option value="${numP}">${numP}</option>`;
+            }
+          });
+          if (valActual) selParte.value = valActual;
+        }
+      }
+
+      // 2. Almacenes
+      if (catData.almacenes && Array.isArray(catData.almacenes) && catData.almacenes.length > 0) {
+        const selAlm = document.getElementById('reg-almacen');
+        if (selAlm) {
+          const valActual = selAlm.value;
+          selAlm.innerHTML = '<option value="">Seleccionar Almacén</option>';
+          catData.almacenes.forEach(a => {
+            const idAlm = a.Warehouse || a.id;
+            const nomAlm = a.name || a.nombre || idAlm;
+            if (idAlm) {
+              relacionAlmacenes[idAlm] = nomAlm;
+              selAlm.innerHTML += `<option value="${idAlm}">${idAlm} - ${nomAlm}</option>`;
+            }
+          });
+          if (valActual) selAlm.value = valActual;
+        }
+      }
+
+      // 3. No Conformancias / Defectos
+      if (catData.defectos && Array.isArray(catData.defectos) && catData.defectos.length > 0) {
+        const selDef = document.getElementById('reg-defecto');
+        if (selDef) {
+          const valActual = selDef.value;
+          selDef.innerHTML = '<option value="">Seleccionar Defecto</option>';
+          catData.defectos.forEach(d => {
+            const nomDef = typeof d === 'string' ? d : (d.defecto || d.No_conformancia);
+            if (nomDef) {
+              selDef.innerHTML += `<option value="${nomDef}">${nomDef}</option>`;
+            }
+          });
+          if (valActual) selDef.value = valActual;
+        }
+      }
+
+      // 4. Estampas de Operador
+      if (catData.estampas && Array.isArray(catData.estampas) && catData.estampas.length > 0) {
+        const selEst = document.getElementById('p2-estampa');
+        if (selEst) {
+          const valActual = selEst.value;
+          selEst.innerHTML = '<option value="">Seleccionar Estampa</option>';
+          catData.estampas.forEach(e => {
+            const idEst = e.id_estampa || e.estampa;
+            const nomOp = e.operador || e.nombre || idEst;
+            if (idEst) {
+              relacionEstampas[idEst] = nomOp;
+              selEst.innerHTML += `<option value="${idEst}">${idEst} - ${nomOp}</option>`;
+            }
+          });
+          if (valActual) selEst.value = valActual;
+        }
+      }
+
+      // 5. Inspectores
+      if (catData.inspectores && Array.isArray(catData.inspectores) && catData.inspectores.length > 0) {
+        const selFiltInsp = document.getElementById('filter-inspector');
+        if (selFiltInsp) {
+          const valActual = selFiltInsp.value;
+          selFiltInsp.innerHTML = '<option value="">Todos los Inspectores</option>';
+          catData.inspectores.forEach(i => {
+            const nomInsp = i.inspector || i.nombre;
+            if (nomInsp) {
+              selFiltInsp.innerHTML += `<option value="${nomInsp}">${nomInsp}</option>`;
+            }
+          });
+          if (valActual) selFiltInsp.value = valActual;
+        }
+      }
+    }
+
+
     function cargarRegistrosDesdeNube(silencioso) {
       if (!URL_WEBHOOK_EXCEL || URL_WEBHOOK_EXCEL.includes('EJEMPLO')) return;
       
       const refreshIcons = document.querySelectorAll('#btn-refresh-nube, #btn-refresh-mobile');
       refreshIcons.forEach(icon => icon.classList.add('animate-spin'));
+
+      
+      // Cargar catálogos maestros desde la nube
+      fetch(URL_WEBHOOK_EXCEL + '?action=getCatalogos')
+        .then(r => r.json())
+        .then(cats => {
+          if (cats) actualizarListasDesplegablesConCatalogos(cats);
+        })
+        .catch(err => console.log("Catalog fetch info:", err));
 
       fetch(URL_WEBHOOK_EXCEL + '?action=getRegistros')
         .then(r => r.json())
@@ -937,20 +1175,33 @@
             data.forEach(item => {
               if (item && item.folio) {
                 const localHist = baseDatos[item.folio]?.historial || [];
+                const rawFotos = item.fotosEvidencia || [item.f1, item.f2, item.f3, item.f4, item.f5].filter(Boolean);
+                const fotosNorm = rawFotos.map(normalizarFotoUrl).filter(Boolean);
+                const f1Norm = normalizarFotoUrl(item.f1);
+                const f2Norm = normalizarFotoUrl(item.f2);
+                const f3Norm = normalizarFotoUrl(item.f3);
+                const f4Norm = normalizarFotoUrl(item.f4);
+                const f5Norm = normalizarFotoUrl(item.f5);
+
                 baseDatos[item.folio] = {
                   ...baseDatos[item.folio],
                   ...item,
+                  f1: f1Norm,
+                  f2: f2Norm,
+                  f3: f3Norm,
+                  f4: f4Norm,
+                  f5: f5Norm,
+                  fotosEvidencia: fotosNorm.length > 0 ? fotosNorm : [f1Norm, f2Norm, f3Norm, f4Norm, f5Norm].filter(Boolean),
                   historial: (item.historial && Array.isArray(item.historial) && item.historial.length > 0) ? item.historial : localHist
                 };
                 actualizados++;
               }
             });
             localStorage.setItem('db_calidad_v3', JSON.stringify(baseDatos));
-            cargarRegistrosDesdeNube(true);
-      aplicarFiltrosYTabla();
+            aplicarFiltrosYTabla();
             renderizarHistorialGlobal();
             if (!silencioso) {
-              mostrarToastSync(`✅ ${actualizados} folios sincronizados en vivo desde la nube`);
+              mostrarToastSync();
             }
           } else if (!silencioso) {
             mostrarToastSync('ℹ️ Registros al día con la nube');
@@ -1128,6 +1379,7 @@
       const seq = String(Object.keys(baseDatos).length + 1001);
       folioActual = `FOL-2026-${seq}`;
       
+      document.getElementById('reg-tipo-orden').value = 'Proceso';
       document.getElementById('lbl-form-eyebrow').innerText = "NUEVA NCR";
       document.getElementById('lbl-form-folio').innerText = folioActual;
       document.getElementById('box-motivo-cambio').classList.add('hidden');
@@ -1149,6 +1401,7 @@
       document.getElementById('box-motivo-cambio').classList.remove('hidden');
       document.getElementById('box-disposicion-balance').classList.remove('hidden');
 
+      document.getElementById('reg-tipo-orden').value = o.tipoOrden || 'Proceso';
       document.getElementById('reg-oc').value = o.oc || '';
       document.getElementById('reg-parte').value = o.numParte || '';
       autocompletarSubensamble();
@@ -1193,6 +1446,7 @@
       const malasVal = regMalasStr !== '' ? (parseInt(regMalasStr, 10) || 0) : (esModoEdicion ? 0 : qtyTotal);
       const pendVal = regPendStr !== '' ? (parseInt(regPendStr, 10) || 0) : Math.max(0, qtyTotal - buenasVal - malasVal);
 
+      const tipoOrdenVal = document.getElementById('reg-tipo-orden')?.value || 'Proceso';
       const orden = {
         folio: folioActual,
         fecha: ahora,
