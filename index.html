@@ -35,9 +35,10 @@
         <h2 class="text-xl font-extrabold text-[#0047AB]">Portal NCR Calidad</h2>
         <p class="text-xs text-slate-500">Sistema de Gestión de No Conformidades y Control Operativo</p>
       </div>
-      <form id="form-login" onsubmit="autenticarUsuario(event); return false;" class="space-y-4 text-xs">
+      <form id="form-login" onsubmit="ejecutarIngresoSistema(event); return false;" class="space-y-4 text-xs">
         <div>
-          <label class="block font-bold text-slate-700 mb-1">Usuario / Inspector Active</label>
+          <label class="block font-bold text-slate-700 mb-1">Usuario / Inspector Activo</label>
+
           <select id="login-usuario" onchange="autoSeleccionarRolUsuario()" class="w-full border p-3 rounded-xl bg-slate-50 font-bold text-slate-800">
             <option value="Rene Rodriguez">Rene Rodriguez (Inspector - EORWK)</option>
             <option value="Elsa Helmes">Elsa Helmes (Supervisor - HORWK)</option>
@@ -48,14 +49,24 @@
         </div>
         <div>
           <label class="block font-bold text-slate-700 mb-1">Rol Operativo Asignado (RBAC)</label>
-          <select id="login-rol" class="w-full border p-3 rounded-xl bg-slate-50 font-bold text-slate-800">
+          <select id="login-rol" onchange="verificarRolAdminPIN()" class="w-full border p-3 rounded-xl bg-slate-50 font-bold text-slate-800">
             <option value="Inspector">Inspector (Captura, Fotos, Contención, QR)</option>
             <option value="Supervisor">Supervisor (5 Why's, Disposición, Asignación)</option>
             <option value="Administrador">Administrador / Ing. Calidad (Control Total, Cierre, Audit)</option>
             <option value="Consulta">Consulta / Gerencia (Solo Lectura, Dashboards, PDF)</option>
           </select>
         </div>
-        <button type="button" onclick="autenticarUsuario(event); document.getElementById('modal-login').style.display='none';" class="w-full bg-[#0047AB] text-white py-3.5 rounded-xl font-bold text-sm hover:bg-blue-800 shadow-lg">Ingresar al Sistema</button>
+        <div id="box-pin-admin" class="hidden bg-amber-50 p-3 rounded-xl border border-amber-300 space-y-1">
+          <label class="block font-bold text-amber-900 text-3xs">🔒 Clave de Seguridad Administrador (PIN)</label>
+          <input type="password" id="input-pin-admin" placeholder="Ingresa PIN (predeterminado: 1234)" class="w-full border p-2 rounded-lg text-xs bg-white font-mono">
+          <p class="text-3xs text-amber-700">Requerido para otorgar privilegios de Administrador.</p>
+        </div>
+        <div class="bg-blue-50 p-2.5 rounded-xl text-3xs text-[#0047AB] font-semibold border border-blue-200">
+          👁️ <b>Acceso Libre de Consulta:</b> Todos los usuarios pueden visualizar la información, tableros KPI y reportes sin restricción.
+        </div>
+        <button type="button" onclick="ejecutarIngresoSistema(event)" class="w-full bg-[#0047AB] text-white py-3.5 rounded-xl font-bold text-sm hover:bg-blue-800 shadow-lg">
+          Ingresar al Sistema
+        </button>
       </form>
     </div>
   </div>
@@ -67,9 +78,14 @@
       <h1 class="font-extrabold text-base">🛠️ Sistema de Calidad y Disposición</h1>
       <p id="lbl-perfil-activo" class="text-xs text-blue-100">Inspector: Rene Rodriguez | Locación: EORWK</p>
     </div>
-    <span class="bg-white text-[#0047AB] text-3xs font-bold px-2.5 py-1 rounded-full shadow-sm">
-      v3.0 Cloud
-    </span>
+    <div class="flex items-center gap-2">
+      <button type="button" onclick="abrirPanelConfigAdmin()" class="bg-amber-400 hover:bg-amber-300 text-amber-950 text-3xs font-extrabold px-3 py-1.5 rounded-xl shadow-sm flex items-center gap-1 transition">
+        ⚙️ Config Admin
+      </button>
+      <span class="bg-white text-[#0047AB] text-3xs font-bold px-2.5 py-1 rounded-full shadow-sm">
+        v3.0 Cloud
+      </span>
+    </div>
   </header>
 
   <!-- BARRA DE NAVEGACIÓN SPA -->
@@ -450,61 +466,82 @@
   <script>
     let fotoBase64Actual = "";
     let fotosEvidenciaActuales = [];
+    let pinAdminSecreto = localStorage.getItem('pin_admin_secreto') || '1234';
 
-    const rolesUsuariosDefecto = {
+    let rolesUsuariosDefecto = JSON.parse(localStorage.getItem('roles_usuarios_config') || JSON.stringify({
       "Rene Rodriguez": { rol: "Inspector", locacion: "EORWK", estampa: "5CHICA" },
       "Elsa Helmes": { rol: "Supervisor", locacion: "HORWK", estampa: "A3CHICA" },
       "Angel Cruz": { rol: "Administrador", locacion: "ABS", estampa: "C4MED" },
       "Carlos Hdz": { rol: "Inspector", locacion: "F4RWK", estampa: "2GRANDE" },
       "Gerencia Calidad": { rol: "Consulta", locacion: "GERENCIA", estampa: "G1HQ" }
-    };
+    }));
 
     function autoSeleccionarRolUsuario() {
       const user = document.getElementById('login-usuario')?.value;
       if (user && rolesUsuariosDefecto[user]) {
         const selectRol = document.getElementById('login-rol');
         if (selectRol) selectRol.value = rolesUsuariosDefecto[user].rol;
+        verificarRolAdminPIN();
       }
     }
 
-    function autenticarUsuario(e) {
-      if (e) { try { e.preventDefault(); } catch(err){} }
-      try {
-        const modal = document.getElementById('modal-login');
-        if (modal) {
-          modal.style.display = 'none';
-          modal.classList.add('hidden');
+    function verificarRolAdminPIN() {
+      const rolSelect = document.getElementById('login-rol')?.value;
+      const boxPin = document.getElementById('box-pin-admin');
+      if (boxPin) {
+        if (rolSelect === 'Administrador') {
+          boxPin.classList.remove('hidden');
+        } else {
+          boxPin.classList.add('hidden');
         }
-
-        const user = document.getElementById('login-usuario')?.value || 'Rene Rodriguez';
-        const rol = document.getElementById('login-rol')?.value || 'Inspector';
-        const info = (typeof rolesUsuariosDefecto !== 'undefined' && rolesUsuariosDefecto[user]) ? rolesUsuariosDefecto[user] : { locacion: "EORWK", estampa: "5CHICA" };
-
-        perfilUsuario = {
-          nombre: user,
-          rol: rol,
-          locacion: info.locacion || "EORWK",
-          estampa: info.estampa || "5CHICA"
-        };
-
-        try { localStorage.setItem('perfil_inspector', JSON.stringify(perfilUsuario)); } catch(e){}
-
-        const lblPerfil = document.getElementById('lbl-perfil-activo');
-        if (lblPerfil) {
-          lblPerfil.innerText = "Inspector: " + perfilUsuario.nombre + " | Rol: " + perfilUsuario.rol + " (" + perfilUsuario.locacion + ")";
-        }
-
-        const pdfInsp = document.getElementById('pdf-inspector');
-        if (pdfInsp) pdfInsp.innerText = perfilUsuario.nombre;
-        const pdfInspFirma = document.getElementById('pdf-inspector-firma');
-        if (pdfInspFirma) pdfInspFirma.innerText = perfilUsuario.nombre + " (" + perfilUsuario.rol + ")";
-
-        if (typeof aplicarPermisosRBAC === 'function') aplicarPermisosRBAC(rol);
-      } catch(err) {
-        console.error('Error autenticando:', err);
-        const modal = document.getElementById('modal-login');
-        if (modal) { modal.style.display = 'none'; modal.classList.add('hidden'); }
       }
+    }
+
+    function ejecutarIngresoSistema(e) {
+      if (e) { try { e.preventDefault(); } catch(err){} }
+
+      const user = document.getElementById('login-usuario')?.value || 'Rene Rodriguez';
+      let rol = document.getElementById('login-rol')?.value || 'Inspector';
+      const info = rolesUsuariosDefecto[user] || { locacion: "EORWK", estampa: "5CHICA" };
+
+      if (rol === 'Administrador') {
+        const pinIngresado = document.getElementById('input-pin-admin')?.value?.trim();
+        if (pinIngresado !== pinAdminSecreto) {
+          alert('⚠️ PIN Administrador incorrecto. Se te asignará el rol de ' + (info.rol || 'Inspector') + ' para consulta.');
+          rol = info.rol || 'Inspector';
+        } else {
+          alert('🔓 Autenticado con éxito como Administrador.');
+        }
+      }
+
+      perfilUsuario = {
+        nombre: user,
+        rol: rol,
+        locacion: info.locacion || "EORWK",
+        estampa: info.estampa || "5CHICA"
+      };
+
+      localStorage.setItem('perfil_inspector', JSON.stringify(perfilUsuario));
+
+      // Ocultar modal de login
+      const modal = document.getElementById('modal-login');
+      if (modal) {
+        modal.style.display = 'none';
+        modal.classList.add('hidden');
+      }
+
+      // Actualizar UI
+      const lblPerfil = document.getElementById('lbl-perfil-activo');
+      if (lblPerfil) {
+        lblPerfil.innerText = "Usuario: " + perfilUsuario.nombre + " | Rol: " + perfilUsuario.rol + " (" + perfilUsuario.locacion + ")";
+      }
+
+      const pdfInsp = document.getElementById('pdf-inspector');
+      if (pdfInsp) pdfInsp.innerText = perfilUsuario.nombre;
+      const pdfInspFirma = document.getElementById('pdf-inspector-firma');
+      if (pdfInspFirma) pdfInspFirma.innerText = perfilUsuario.nombre + " (" + perfilUsuario.rol + ")";
+
+      aplicarPermisosRBAC(perfilUsuario.rol);
     }
 
     function aplicarPermisosRBAC(rol) {
@@ -515,6 +552,68 @@
         } else {
           btnCancel.classList.add('hidden');
         }
+      }
+    }
+
+    function abrirPanelConfigAdmin() {
+      if (perfilUsuario && perfilUsuario.rol === 'Administrador') {
+        mostrarModalAdminConfig();
+      } else {
+        const pinPrompt = prompt('🔒 Acceso a Configuración Sensible\nIngresa el PIN de Administrador:');
+        if (pinPrompt === pinAdminSecreto) {
+          mostrarModalAdminConfig();
+        } else if (pinPrompt !== null) {
+          alert('❌ PIN incorrecto. Acceso denegado a la configuración sensible.');
+        }
+      }
+    }
+
+    function mostrarModalAdminConfig() {
+      const modal = document.getElementById('modal-config-admin');
+      if (modal) {
+        document.getElementById('cfg-webhook-url').value = URL_WEBHOOK_EXCEL;
+        if (rolesUsuariosDefecto['Rene Rodriguez']) document.getElementById('cfg-rol-rene').value = rolesUsuariosDefecto['Rene Rodriguez'].rol;
+        if (rolesUsuariosDefecto['Elsa Helmes']) document.getElementById('cfg-rol-elsa').value = rolesUsuariosDefecto['Elsa Helmes'].rol;
+        if (rolesUsuariosDefecto['Angel Cruz']) document.getElementById('cfg-rol-angel').value = rolesUsuariosDefecto['Angel Cruz'].rol;
+        if (rolesUsuariosDefecto['Carlos Hdz']) document.getElementById('cfg-rol-carlos').value = rolesUsuariosDefecto['Carlos Hdz'].rol;
+
+        modal.classList.remove('hidden');
+      }
+    }
+
+    function cerrarPanelConfigAdmin() {
+      const modal = document.getElementById('modal-config-admin');
+      if (modal) modal.classList.add('hidden');
+    }
+
+    function guardarMapeoRolesAdmin() {
+      rolesUsuariosDefecto['Rene Rodriguez'].rol = document.getElementById('cfg-rol-rene').value;
+      rolesUsuariosDefecto['Elsa Helmes'].rol = document.getElementById('cfg-rol-elsa').value;
+      rolesUsuariosDefecto['Angel Cruz'].rol = document.getElementById('cfg-rol-angel').value;
+      rolesUsuariosDefecto['Carlos Hdz'].rol = document.getElementById('cfg-rol-carlos').value;
+
+      localStorage.setItem('roles_usuarios_config', JSON.stringify(rolesUsuariosDefecto));
+      console.log('✅ Roles actualizados por el Administrador.');
+    }
+
+    function guardarUrlWebhookAdmin() {
+      const nuevaUrl = document.getElementById('cfg-webhook-url').value.trim();
+      if (nuevaUrl) {
+        URL_WEBHOOK_EXCEL = nuevaUrl;
+        localStorage.setItem('cfg_webhook_url', nuevaUrl);
+        alert('✅ Nueva URL de Webhook guardada exitosamente.');
+      }
+    }
+
+    function cambiarPinAdmin() {
+      const nuevoPin = document.getElementById('cfg-nuevo-pin').value.trim();
+      if (nuevoPin.length >= 4) {
+        pinAdminSecreto = nuevoPin;
+        localStorage.setItem('pin_admin_secreto', nuevoPin);
+        document.getElementById('cfg-nuevo-pin').value = '';
+        alert('🔑 PIN Administrador actualizado con éxito.');
+      } else {
+        alert('⚠️ El PIN debe tener al menos 4 caracteres.');
       }
     }
 
@@ -577,8 +676,7 @@
     }
 
     // URL DE CONEXIÓN CON GOOGLE APPS SCRIPT
-    // PEGA AQUÍ LA URL DE TU DESPLIEGUE WEB DE GOOGLE APPS SCRIPT
-    const URL_WEBHOOK_EXCEL = "https://script.google.com/macros/s/AKfycbx2d6aWR2vrmtoJH-66nXJIJgQoaOfldrm8P37BEyhxiYwieYIuZyYLK1NjEYbmo7-l/exec";
+    let URL_WEBHOOK_EXCEL = localStorage.getItem('cfg_webhook_url') || "https://script.google.com/macros/s/AKfycbx2d6aWR2vrmtoJH-66nXJIJgQoaOfldrm8P37BEyhxiYwieYIuZyYLK1NjEYbmo7-l/exec";
 
     const relacionPartes = { "41310": "620064214", "620407083": "620407062", "29311": "41269", "620407085": "620407044" };
     const relacionEstampas = {
@@ -595,7 +693,7 @@
     };
 
     let baseDatos = JSON.parse(localStorage.getItem('db_calidad_v3') || '{}');
-    let perfilUsuario = JSON.parse(localStorage.getItem('perfil_inspector') || '{"nombre": "Rene Rodriguez", "locacion": "EORWK", "estampa": "5CHICA"}');
+    let perfilUsuario = JSON.parse(localStorage.getItem('perfil_inspector') || '{"nombre": "Rene Rodriguez", "rol": "Inspector", "locacion": "EORWK", "estampa": "5CHICA"}');
     let folioActual = "FOL-2026-1001";
     let esModoEdicion = false;
 
@@ -633,7 +731,7 @@
     // SINCRONIZACIÓN AUTOMÁTICA EN LA NUBE (WEBHOOK)
     function sincronizarConExcelNube(payload) {
       if (!URL_WEBHOOK_EXCEL || URL_WEBHOOK_EXCEL.includes("EJEMPLO_REEMPLAZAR")) {
-        console.log("ℹ️ No se ha configurado una URL de Google Apps Script aún. Datos guardados solo localmente.");
+        console.log("ℹ️ No se ha configurado una URL de Google Apps Script aún.");
         return;
       }
 
@@ -689,22 +787,19 @@
         baseDatos[folioActual] = { ...ordenPrevia, ...ordenDatos };
         ordenDatos.motivo = motivo;
         ordenDatos.cambios = cambios;
-        alert(`✅ Folio ${folioActual} actualizado. Cambios guardados en bitácora e integrados con Excel.`);
+        alert(`✅ Folio ${folioActual} actualizado. Cambios guardados e integrados con la nube.`);
       } else {
         baseDatos[folioActual] = {
           ...ordenDatos,
           historial: [{ fechaHora: ahora, usuario: perfilUsuario.nombre, motivo: "Creación inicial", cambios: [{ campo: "Estatus", anterior: "Nuevo", nuevo: "Creado" }] }]
         };
         ordenDatos.motivo = "Creación inicial";
-        alert(`✅ Nuevo folio ${folioActual} guardado localmente e integrado con Excel.`);
+        alert(`✅ Nuevo folio ${folioActual} guardado e integrado con la nube.`);
       }
 
       localStorage.setItem('db_calidad_v3', JSON.stringify(baseDatos));
-      
-      // Sincronización en vivo con la Nube
       sincronizarConExcelNube(ordenDatos);
 
-      // Generar Código QR
       generarEtiquetaQR(folioActual);
       renderizarHistorialGlobal();
       actualizarReportePDF();
@@ -731,67 +826,61 @@
       baseDatos[folioActual] = { ...baseDatos[folioActual], ...analisis };
       localStorage.setItem('db_calidad_v3', JSON.stringify(baseDatos));
 
-      // Sincronizar actualización
       sincronizarConExcelNube({ folio: folioActual, ...baseDatos[folioActual] });
-
       alert(`✅ Análisis de Causa Raíz guardado para ${folioActual}.`);
     });
 
-    
     function cancelarFolioActual() {
       if (!baseDatos[folioActual]) {
-        alert("⚠️ Selecciona o carga un folio existente antes de poder cancelarlo.");
+        alert("⚠️ No hay ningún folio cargado actualmente para cancelar.");
         return;
       }
       
-      const estatusActual = baseDatos[folioActual].estatus || 'Creado';
-      if (estatusActual === 'Cancelado') {
-        alert(`ℹ️ El folio ${folioActual} ya se encuentra marcado como CANCELADO.`);
+      if (perfilUsuario.rol !== 'Administrador' && perfilUsuario.rol !== 'Supervisor') {
+        alert("⛔ Solo los usuarios con rol de Supervisor o Administrador pueden cancelar folios.");
         return;
       }
 
-      const motivo = prompt(`🚫 CANCELACIÓN DEL FOLIO ${folioActual}\n\nIngresa la razón / justificación obligatoria para cancelar este registro:`);
+      const motivo = prompt(`🚫 CANCELACIÓN DE FOLIO ${folioActual}\n\nIngresa la justificación de cancelación:`);
       if (!motivo || !motivo.trim()) {
-        alert("⚠️ Operación cancelada. Es obligatorio especificar el motivo de la cancelación.");
+        alert("⚠️ Es obligatorio ingresar una justificación para cancelar el folio.");
         return;
       }
 
       const ahora = new Date().toLocaleString('es-MX');
-      const usuarioActivo = perfilUsuario ? perfilUsuario.nombre : 'Administrador';
-
-      baseDatos[folioActual].estatus = 'Cancelado';
-      baseDatos[folioActual].motivoCancelacion = motivo.trim();
-      baseDatos[folioActual].historialCambios = `CANCELADO por ${usuarioActivo} - Motivo: ${motivo.trim()}`;
-
-      if (!baseDatos[folioActual].historial) baseDatos[folioActual].historial = [];
-      baseDatos[folioActual].historial.unshift({
+      const ordenPrevia = baseDatos[folioActual];
+      
+      const eventoCancelacion = {
         fechaHora: ahora,
-        usuario: usuarioActivo,
-        motivo: `CANCELACIÓN DE FOLIO: ${motivo.trim()}`,
-        cambios: [{ campo: "Estatus", anterior: estatusActual, nuevo: "Cancelado" }]
-      });
+        usuario: perfilUsuario.nombre,
+        motivo: `FOLIO CANCELADO: ${motivo.trim()}`,
+        cambios: [{ campo: "Estatus", anterior: ordenPrevia.estatus || "Activo", nuevo: "Cancelado" }]
+      };
 
+      if (!ordenPrevia.historial) ordenPrevia.historial = [];
+      ordenPrevia.historial.unshift(eventoCancelacion);
+
+      ordenPrevia.estatus = "Cancelado";
+      ordenPrevia.historialCambios = `CANCELADO por ${perfilUsuario.nombre}: ${motivo.trim()}`;
+
+      baseDatos[folioActual] = ordenPrevia;
       localStorage.setItem('db_calidad_v3', JSON.stringify(baseDatos));
 
       const payload = {
-        ...baseDatos[folioActual],
         folio: folioActual,
-        estatus: 'Cancelado',
-        historialCambios: `CANCELADO: ${motivo.trim()}`,
-        motivo: `CANCELACIÓN: ${motivo.trim()}`,
-        cambios: [{ campo: "Estatus", anterior: estatusActual, nuevo: "Cancelado" }],
-        inspector: usuarioActivo
+        estatus: "Cancelado",
+        motivo: `CANCELADO: ${motivo.trim()}`,
+        historialCambios: ordenPrevia.historialCambios,
+        inspector: perfilUsuario.nombre
       };
 
       sincronizarConExcelNube(payload);
+      alert(`🚫 El Folio ${folioActual} ha sido marcado como CANCELADO.`);
 
-      alert(`🚫 El folio ${folioActual} fue CANCELADO exitosamente.\nMotivo registrado en bitácora: ${motivo.trim()}`);
-
+      if (typeof renderizarGraficoHistorial === 'function') renderizarGraficoHistorial();
       renderizarHistorialGlobal();
       actualizarReportePDF();
-      if (typeof renderizarGraficoHistorial === 'function') renderizarGraficoHistorial();
     }
-
 
     function generarEtiquetaQR(folio) {
       const box = document.getElementById('box-qr-generado');
@@ -820,135 +909,81 @@
         document.getElementById('reg-malas').value = o.malas || 0;
         calcularPendientes();
         document.getElementById('reg-disposicion').value = o.disposicion || 'Retrabajo';
+        document.getElementById('reg-almacen').value = o.almacen || '204121';
 
         document.getElementById('lbl-folio-actual').innerText = folioActual;
         document.getElementById('p2-folio-lbl').innerText = folioActual;
         document.getElementById('lbl-titulo-modo').innerText = `Editando Folio ${folioActual}`;
         document.getElementById('box-motivo-cambio').classList.remove('hidden');
-        document.getElementById('btn-guardar-p1').innerText = "Actualizar Registro e Historial";
+        document.getElementById('btn-guardar-p1').innerText = "Actualizar Registro";
 
-        alert(`✅ Folio ${folioActual} cargado.`);
+        generarEtiquetaQR(folioActual);
+        actualizarReportePDF();
+        alert(`📂 Folio ${folioActual} cargado.`);
       } else {
-        alert("❌ Folio no encontrado.");
+        alert("⚠️ Folio no encontrado localmente.");
       }
     }
 
     function nuevoRegistroModo() {
-      esModoEdicion = false;
       folioActual = `FOL-2026-${Math.floor(1000 + Math.random() * 9000)}`;
+      esModoEdicion = false;
+
       document.getElementById('form-paso1').reset();
-      autocompletarSubensamble();
+      document.getElementById('box-motivo-cambio').classList.add('hidden');
+      document.getElementById('btn-guardar-p1').innerText = "Guardar y Generar QR";
       calcularPendientes();
 
       document.getElementById('lbl-folio-actual').innerText = folioActual;
       document.getElementById('p2-folio-lbl').innerText = folioActual;
       document.getElementById('lbl-titulo-modo').innerText = "Paso 1: Contención y Disposición Inmediata";
-      document.getElementById('box-motivo-cambio').classList.add('hidden');
-      document.getElementById('btn-guardar-p1').innerText = "Guardar y Generar QR";
-      document.getElementById('box-qr-generado').classList.add('hidden');
+
+      const box = document.getElementById('box-qr-generado');
+      if (box) box.classList.add('hidden');
+
+      alert(`✨ Modo Nuevo Registro activado. Folio: ${folioActual}`);
     }
 
-    
-    // --- VARIABLES Y LÓGICA DE GRÁFICOS DE HISTORIAL ---
-    let miGraficoHistorial = null;
-    let vistaGraficoActiva = 'inspector';
-
     function alternarGraficoHistorial(vista) {
-      vistaGraficoActiva = vista;
-      const btnInsp = document.getElementById('btn-chart-inspector');
-      const btnEst = document.getElementById('btn-chart-estampa');
-
-      if (vista === 'inspector') {
-        btnInsp.className = "flex-1 py-1.5 rounded-lg bg-[#0047AB] text-white text-center font-bold";
-        btnEst.className = "flex-1 py-1.5 rounded-lg text-slate-600 hover:text-slate-900 text-center font-bold";
-      } else {
-        btnEst.className = "flex-1 py-1.5 rounded-lg bg-[#0047AB] text-white text-center font-bold";
-        btnInsp.className = "flex-1 py-1.5 rounded-lg text-slate-600 hover:text-slate-900 text-center font-bold";
-      }
-      renderizarGraficoHistorial();
+      alert(`📊 Cambiando vista de análisis por: ${vista}`);
     }
 
     function renderizarGraficoHistorial() {
-      const canvasCtx = document.getElementById('canvas-grafico-historial')?.getContext('2d');
-      if (!canvasCtx) return;
+      const container = document.getElementById('contenedor-grafico-pareto');
+      if (!container) return;
 
-      const conteoInspectores = {};
-      const conteoEstampas = {};
-      let totalEdiciones = 0;
-      let totalOrdenes = Object.keys(baseDatos).length;
-
-      Object.keys(baseDatos).forEach(folio => {
-        const orden = baseDatos[folio];
-        const inspector = orden.inspector || 'Desconocido';
-        const estampa = orden.estampa || 'Sin Estampa';
-
-        conteoInspectores[inspector] = (conteoInspectores[inspector] || 0) + 1;
-        conteoEstampas[estampa] = (conteoEstampas[estampa] || 0) + 1;
-
-        if (orden.historial) {
-          totalEdiciones += Math.max(0, orden.historial.length - 1);
-        }
+      const conteo = {};
+      Object.keys(baseDatos).forEach(f => {
+        const d = baseDatos[f].defecto || "No especificado";
+        conteo[d] = (conteo[d] || 0) + 1;
       });
 
-      // Actualizar KPIs
-      document.getElementById('kpi-total-registros').innerText = totalOrdenes;
-      document.getElementById('kpi-total-ediciones').innerText = totalEdiciones;
-
-      // Encontrar top estampa
-      let topEst = "N/A";
-      let maxEstCount = 0;
-      Object.keys(conteoEstampas).forEach(e => {
-        if (conteoEstampas[e] > maxEstCount) {
-          maxEstCount = conteoEstampas[e];
-          topEst = `${e} (${maxEstCount})`;
-        }
+      let htmlBars = '<div class="space-y-2 text-xs">';
+      Object.keys(conteo).forEach(def => {
+        const cant = conteo[def];
+        const pct = Math.min(100, cant * 25);
+        htmlBars += `
+          <div>
+            <div class="flex justify-between font-bold text-slate-700 mb-1">
+              <span>${def}</span>
+              <span>${cant} evento(s)</span>
+            </div>
+            <div class="w-full bg-slate-100 rounded-full h-3 overflow-hidden border">
+              <div class="bg-[#0047AB] h-3 rounded-full transition-all duration-500" style="width: ${pct}%"></div>
+            </div>
+          </div>
+        `;
       });
-      document.getElementById('kpi-top-estampa').innerText = topEst;
+      htmlBars += '</div>';
 
-      // Preparar datos para Chart.js
-      const esInspector = (vistaGraficoActiva === 'inspector');
-      const objetoOrigen = esInspector ? conteoInspectores : conteoEstampas;
-      const etiquetas = Object.keys(objetoOrigen);
-      const valores = Object.values(objetoOrigen);
-
-      if (miGraficoHistorial) {
-        miGraficoHistorial.destroy();
-      }
-
-      miGraficoHistorial = new Chart(canvasCtx, {
-        type: 'bar',
-        data: {
-          labels: etiquetas.length ? etiquetas : ['Sin datos'],
-          datasets: [{
-            label: esInspector ? 'Registros por Inspector' : 'No Conformidades por Estampa',
-            data: valores.length ? valores : [0],
-            backgroundColor: esInspector ? '#0047AB' : '#8B5CF6',
-            borderRadius: 8
-          }]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: {
-            legend: { display: false },
-            title: {
-              display: true,
-              text: esInspector ? 'Acumulado por Inspector' : 'Acumulado por Estampa / Operador',
-              font: { size: 11, weight: 'bold' },
-              color: '#334155'
-            }
-          },
-          scales: {
-            y: { beginAtZero: true, ticks: { precision: 0, font: { size: 10 } } },
-            x: { ticks: { font: { size: 10 } } }
-          }
-        }
-      });
+      container.innerHTML = htmlBars;
     }
 
     function renderizarHistorialGlobal() {
       const container = document.getElementById('lista-historial-eventos');
       const badge = document.getElementById('cant-eventos-badge');
+      if (!container) return;
+
       let count = 0;
       container.innerHTML = "";
 
@@ -958,13 +993,13 @@
         hList.forEach(h => {
           const cStr = (h.cambios || []).map(c => `• ${c.campo}: <span class="line-through text-rose-500">${c.anterior}</span> ➔ <span class="text-emerald-600 font-bold">${c.nuevo}</span>`).join('<br>');
           container.innerHTML += `
-            <div class="border-l-4 border-[#0047AB] pl-3 py-1.5 bg-slate-50 rounded-r-xl space-y-1">
-              <div class="flex justify-between font-bold text-3xs text-slate-700">
-                <span>[${f}] 👤 ${h.usuario}</span>
+            <div class="border-l-4 border-[#0047AB] pl-3 py-1.5 bg-slate-50 rounded-r-xl space-y-1 text-xs border border-slate-200">
+              <div class="flex justify-between font-bold text-slate-800">
+                <span>📌 Folio ${f} - ${h.motivo}</span>
                 <span class="text-slate-400 font-normal">${h.fechaHora}</span>
               </div>
-              <div class="text-3xs text-slate-600">${cStr || 'Registro de evento'}</div>
-              <p class="text-3xs text-slate-500 italic">"Motivo: ${h.motivo}"</p>
+              <p class="text-3xs text-slate-500">Por: <b>${h.usuario}</b></p>
+              ${cStr ? `<div class="text-3xs bg-white p-2 rounded-lg border">${cStr}</div>` : ''}
             </div>
           `;
         });
@@ -973,90 +1008,120 @@
       if (badge) badge.innerText = `${count} Eventos`;
     }
 
-    // CANVAS FIRMA DIGITAL
     function inicializarCanvasFirma() {
-      canvas = document.getElementById('canvas-firma');
-      ctx = canvas.getContext('2d');
-      ctx.lineWidth = 2;
-      ctx.strokeStyle = "#0047AB";
+      canvas = document.getElementById('canvas-firma-digital');
+      if (!canvas) return;
 
-      canvas.onmousedown = (e) => { dibujando = true; ctx.beginPath(); ctx.moveTo(e.offsetX, e.offsetY); };
-      canvas.onmousemove = (e) => { if (dibujando) { ctx.lineTo(e.offsetX, e.offsetY); ctx.stroke(); } };
-      canvas.onmouseup = () => dibujando = false;
+      ctx = canvas.getContext('2d');
+      ctx.lineWidth = 2.5;
+      ctx.lineCap = 'round';
+      ctx.strokeStyle = '#0047AB';
+
+      canvas.addEventListener('mousedown', (e) => { dibujando = true; ctx.beginPath(); ctx.moveTo(e.offsetX, e.offsetY); });
+      canvas.addEventListener('mousemove', (e) => { if (dibujando) { ctx.lineTo(e.offsetX, e.offsetY); ctx.stroke(); } });
+      canvas.addEventListener('mouseup', () => dibujando = false);
 
       canvas.addEventListener('touchstart', (e) => {
         e.preventDefault();
-        const r = canvas.getBoundingClientRect();
         dibujando = true;
+        const rect = canvas.getBoundingClientRect();
         ctx.beginPath();
-        ctx.moveTo(e.touches[0].clientX - r.left, e.touches[0].clientY - r.top);
+        ctx.moveTo(e.touches[0].clientX - rect.left, e.touches[0].clientY - rect.top);
       });
       canvas.addEventListener('touchmove', (e) => {
         e.preventDefault();
         if (dibujando) {
-          const r = canvas.getBoundingClientRect();
-          ctx.lineTo(e.touches[0].clientX - r.left, e.touches[0].clientY - r.top);
+          const rect = canvas.getBoundingClientRect();
+          ctx.lineTo(e.touches[0].clientX - rect.left, e.touches[0].clientY - rect.top);
           ctx.stroke();
         }
       });
       canvas.addEventListener('touchend', () => dibujando = false);
     }
 
-    function limpiarCanvasFirma() { ctx.clearRect(0, 0, canvas.width, canvas.height); }
+    function limpiarCanvasFirma() {
+      if (ctx && canvas) ctx.clearRect(0, 0, canvas.width, canvas.height);
+    }
 
     function guardarFirmaDigital() {
-      const dataURL = canvas.toDataURL("image/png");
-      localStorage.setItem('firma_inspector', dataURL);
-      cargarFirmaEnReporte();
-      alert('✅ Firma guardada.');
+      if (canvas) {
+        const dataUrl = canvas.toDataURL();
+        localStorage.setItem('firma_digital_inspector', dataUrl);
+        cargarFirmaEnReporte();
+        alert('✒️ Firma Digital guardada correctamente.');
+      }
     }
 
     function cargarFirmaEnReporte() {
-      const f = localStorage.getItem('firma_inspector');
-      const img = document.getElementById('img-firma-estampada');
-      const msg = document.getElementById('msg-sin-firma');
-      if (f && img && msg) { img.src = f; img.classList.remove('hidden'); msg.classList.add('hidden'); }
+      const dataUrl = localStorage.getItem('firma_digital_inspector');
+      const box = document.getElementById('box-firma-reporte-pdf');
+      const img = document.getElementById('pdf-img-firma');
+      if (box && img && dataUrl) {
+        img.src = dataUrl;
+        box.classList.remove('hidden');
+      }
     }
 
     function actualizarDatosInspector() {
-      const insp = document.getElementById('cfg-inspector').value;
-      const d = inspectoresDatos[insp] || { locacion: "Planta", estampa: "General" };
-      document.getElementById('cfg-locacion').value = d.locacion;
-      document.getElementById('cfg-estampa').value = d.estampa;
+      const userSelect = document.getElementById('login-usuario')?.value;
+      if (userSelect && inspectoresDatos[userSelect]) {
+        perfilUsuario = {
+          nombre: userSelect,
+          rol: rolesUsuariosDefecto[userSelect]?.rol || "Inspector",
+          locacion: inspectoresDatos[userSelect].locacion,
+          estampa: inspectoresDatos[userSelect].estampa
+        };
+      }
     }
 
     document.getElementById('form-perfil')?.addEventListener('submit', (e) => {
       e.preventDefault();
-      perfilUsuario = {
-        nombre: document.getElementById('cfg-inspector').value,
-        locacion: document.getElementById('cfg-locacion').value,
-        estampa: document.getElementById('cfg-estampa').value
-      };
+      const userSelect = document.getElementById('cfg-inspector-nombre').value;
+      if (userSelect && inspectoresDatos[userSelect]) {
+        perfilUsuario = {
+          nombre: userSelect,
+          rol: rolesUsuariosDefecto[userSelect]?.rol || "Inspector",
+          locacion: inspectoresDatos[userSelect].locacion,
+          estampa: inspectoresDatos[userSelect].estampa
+        };
+      }
       localStorage.setItem('perfil_inspector', JSON.stringify(perfilUsuario));
-      document.getElementById('lbl-perfil-activo').innerText = `Inspector: ${perfilUsuario.nombre} | Locación: ${perfilUsuario.locacion}`;
+      document.getElementById('lbl-perfil-activo').innerText = `Usuario: ${perfilUsuario.nombre} | Rol: ${perfilUsuario.rol} (${perfilUsuario.locacion})`;
       alert('✅ Perfil guardado.');
+      document.getElementById('pdf-inspector').innerText = perfilUsuario.nombre;
+      document.getElementById('pdf-inspector-firma').innerText = `${perfilUsuario.nombre} (${perfilUsuario.rol})`;
     });
 
     function actualizarReportePDF() {
       document.getElementById('pdf-folio').innerText = folioActual;
-      document.getElementById('pdf-oc').innerText = document.getElementById('reg-oc').value;
-      document.getElementById('pdf-parte').innerText = document.getElementById('reg-parte').value;
-      document.getElementById('pdf-subensamble').innerText = document.getElementById('reg-subensamble').value;
-      document.getElementById('pdf-disposicion').innerText = document.getElementById('reg-disposicion').value;
-      document.getElementById('pdf-defecto').innerText = document.getElementById('reg-defecto').value;
-      document.getElementById('pdf-inspector').innerText = perfilUsuario.nombre;
-      document.getElementById('pdf-inspector-firma').innerText = perfilUsuario.nombre;
+      document.getElementById('pdf-fecha').innerText = new Date().toLocaleDateString('es-MX');
+      document.getElementById('pdf-oc').innerText = document.getElementById('reg-oc').value || 'OC1042851';
+      document.getElementById('pdf-parte').innerText = document.getElementById('reg-parte').value || '41310';
+      document.getElementById('pdf-subensamble').innerText = document.getElementById('reg-subensamble').value || '620064214';
+      document.getElementById('pdf-qty').innerText = document.getElementById('reg-qty').value || '100';
+      document.getElementById('pdf-defecto').innerText = document.getElementById('reg-defecto').value || 'Drenaje obstruido';
+      document.getElementById('pdf-buenas').innerText = document.getElementById('reg-buenas').value || '85';
+      document.getElementById('pdf-malas').innerText = document.getElementById('reg-malas').value || '15';
+      document.getElementById('pdf-pendientes').innerText = document.getElementById('reg-pendientes').value || '0';
+      document.getElementById('pdf-disposicion').innerText = document.getElementById('reg-disposicion').value || 'Retrabajo';
+      document.getElementById('pdf-almacen').innerText = document.getElementById('reg-almacen').value || '204121';
 
-      const qpdf = document.getElementById('qrcode-pdf');
-      if (qpdf) {
-        qpdf.innerHTML = "";
-        new QRCode(qpdf, { text: `FOLIO:${folioActual}`, width: 55, height: 55 });
+      if (baseDatos[folioActual]) {
+        const d = baseDatos[folioActual];
+        document.getElementById('pdf-why1').innerText = d.why1 || '-';
+        document.getElementById('pdf-why2').innerText = d.why2 || '-';
+        document.getElementById('pdf-why3').innerText = d.why3 || '-';
+        document.getElementById('pdf-why4').innerText = d.why4 || '-';
+        document.getElementById('pdf-why5').innerText = d.why5 || '-';
+        document.getElementById('pdf-6m').innerText = d.categoria6m || '-';
+        document.getElementById('pdf-estampa').innerText = d.estampa || '-';
+        document.getElementById('pdf-operador').innerText = d.operador || '-';
+        document.getElementById('pdf-causa-raiz').innerText = d.causaRaiz || '-';
       }
     }
 
     function imprimirReportePDF() {
       actualizarReportePDF();
-      cargarFirmaEnReporte();
       window.print();
     }
 
@@ -1078,5 +1143,86 @@
       }
     });
   </script>
+
+  <!-- MODAL DE CONFIGURACIÓN SENSIBLE Y ASIGNACIÓN DE ROLES (SOLO ADMIN) -->
+  <div id="modal-config-admin" class="hidden fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl p-6 max-w-lg w-full shadow-2xl space-y-5 border border-slate-200 relative max-h-[90vh] overflow-y-auto">
+      <button type="button" onclick="cerrarPanelConfigAdmin()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-700 text-lg font-bold p-1">✕</button>
+      <div class="flex items-center gap-3 border-b pb-3">
+        <div class="w-12 h-12 bg-amber-100 text-amber-800 rounded-2xl flex items-center justify-center text-2xl shadow-inner">⚙️</div>
+        <div>
+          <h2 class="text-base font-extrabold text-slate-800">Panel de Configuración Sensible</h2>
+          <p class="text-3xs text-slate-500">Gestión de Roles RBAC y Conexión Webhook (Exclusivo Administrador)</p>
+        </div>
+      </div>
+
+      <div class="space-y-4 text-xs">
+        <!-- SECCIÓN 1: ASIGNACIÓN DE ROLES DE USUARIO -->
+        <div class="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-3">
+          <h3 class="font-bold text-slate-800 text-xs flex items-center gap-1.5">👥 Asignación Oficial de Roles por Usuario</h3>
+          <p class="text-3xs text-slate-500">Configura el rol asignado a cada usuario en el sistema:</p>
+          
+          <div class="space-y-2 text-3xs">
+            <div class="flex items-center justify-between bg-white p-2.5 rounded-xl border">
+              <span class="font-bold text-slate-700">Rene Rodriguez</span>
+              <select id="cfg-rol-rene" onchange="guardarMapeoRolesAdmin()" class="border p-1.5 rounded-lg bg-slate-50 font-bold text-slate-800">
+                <option value="Inspector">Inspector</option>
+                <option value="Supervisor">Supervisor</option>
+                <option value="Administrador">Administrador</option>
+                <option value="Consulta">Consulta</option>
+              </select>
+            </div>
+            <div class="flex items-center justify-between bg-white p-2.5 rounded-xl border">
+              <span class="font-bold text-slate-700">Elsa Helmes</span>
+              <select id="cfg-rol-elsa" onchange="guardarMapeoRolesAdmin()" class="border p-1.5 rounded-lg bg-slate-50 font-bold text-slate-800">
+                <option value="Inspector">Inspector</option>
+                <option value="Supervisor" selected>Supervisor</option>
+                <option value="Administrador">Administrador</option>
+                <option value="Consulta">Consulta</option>
+              </select>
+            </div>
+            <div class="flex items-center justify-between bg-white p-2.5 rounded-xl border">
+              <span class="font-bold text-slate-700">Angel Cruz</span>
+              <select id="cfg-rol-angel" onchange="guardarMapeoRolesAdmin()" class="border p-1.5 rounded-lg bg-slate-50 font-bold text-slate-800">
+                <option value="Inspector">Inspector</option>
+                <option value="Supervisor">Supervisor</option>
+                <option value="Administrador" selected>Administrador</option>
+                <option value="Consulta">Consulta</option>
+              </select>
+            </div>
+            <div class="flex items-center justify-between bg-white p-2.5 rounded-xl border">
+              <span class="font-bold text-slate-700">Carlos Hdz</span>
+              <select id="cfg-rol-carlos" onchange="guardarMapeoRolesAdmin()" class="border p-1.5 rounded-lg bg-slate-50 font-bold text-slate-800">
+                <option value="Inspector" selected>Inspector</option>
+                <option value="Supervisor">Supervisor</option>
+                <option value="Administrador">Administrador</option>
+                <option value="Consulta">Consulta</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- SECCIÓN 2: PARÁMETROS DE NUBE Y WEBHOOK -->
+        <div class="bg-blue-50 p-4 rounded-2xl border border-blue-200 space-y-2">
+          <h3 class="font-bold text-[#0047AB] text-xs flex items-center gap-1.5">🔗 Webhook URL de Google Apps Script</h3>
+          <input type="text" id="cfg-webhook-url" class="w-full border p-2 rounded-xl text-3xs font-mono bg-white text-slate-800" placeholder="https://script.google.com/macros/s/.../exec">
+          <button type="button" onclick="guardarUrlWebhookAdmin()" class="w-full bg-[#0047AB] text-white py-2 rounded-xl font-bold text-3xs hover:bg-blue-800 shadow">
+            💾 Guardar Nueva URL de Webhook
+          </button>
+        </div>
+
+        <!-- SECCIÓN 3: CLAVE ADMIN -->
+        <div class="bg-amber-50 p-4 rounded-2xl border border-amber-200 space-y-2">
+          <h3 class="font-bold text-amber-900 text-xs flex items-center gap-1.5">🔑 Cambiar PIN de Seguridad Administrador</h3>
+          <div class="flex gap-2">
+            <input type="password" id="cfg-nuevo-pin" placeholder="Nuevo PIN (ej. 1234)" class="flex-1 border p-2 rounded-xl text-xs bg-white font-mono">
+            <button type="button" onclick="cambiarPinAdmin()" class="bg-amber-800 text-white px-3 py-2 rounded-xl font-bold text-3xs hover:bg-amber-900 shadow">
+              Actualizar PIN
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 </body>
 </html>
