@@ -752,6 +752,23 @@
       }
     }
 
+    
+    function cerrarModalPortal() {
+      const modal = document.getElementById('modal-login');
+      if (modal) {
+        modal.style.display = 'none';
+        modal.classList.add('hidden');
+      }
+    }
+
+    function limpiarFoto() {
+      if (typeof limpiarFotos === 'function') limpiarFotos();
+    }
+
+    function procesarFotoEvidencia(input) {
+      if (typeof procesarFotosEvidencia === 'function') procesarFotosEvidencia(input);
+    }
+
     function autenticarUsuario(e) {
       if (e) try { e.preventDefault(); } catch(err){}
 
