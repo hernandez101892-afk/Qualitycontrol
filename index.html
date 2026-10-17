@@ -55,8 +55,10 @@
 
     /* Print styles */
     @media print {
+      body { background: #ffffff !important; color: #000000 !important; margin: 0 !important; padding: 0 !important; }
       body > *:not(#section-printable-pdf) { display: none !important; }
-      #section-printable-pdf { display: block !important; visibility: visible !important; position: absolute; left: 0; top: 0; width: 100%; }
+      body > #section-printable-pdf { display: block !important; visibility: visible !important; position: absolute; left: 0; top: 0; width: 100% !important; margin: 0 !important; padding: 24px !important; background: #ffffff !important; color: #000000 !important; box-shadow: none !important; }
+      #section-printable-pdf * { visibility: visible !important; }
       .no-print { display: none !important; }
     }
   
@@ -91,9 +93,8 @@
 <body>
 
   <!-- MODAL INICIO SESIÓN / PORTAL SELECCIÓN USUARIO -->
-  <div id="modal-login" class="fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+  <div id="modal-login" class="fixed inset-0 bg-slate-900/85 backdrop-blur-md z-50 flex items-center justify-center p-4">
     <div class="bg-white rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-5 border border-slate-200 relative">
-      <button type="button" onclick="cerrarModalPortal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-700 text-lg font-bold p-1">✕</button>
       
       <div class="text-center space-y-1">
         <div class="w-16 h-16 bg-blue-100 text-[#0078d4] rounded-2xl flex items-center justify-center text-3xl mx-auto shadow-inner">🛡️</div>
@@ -576,7 +577,7 @@
           </div>
         </div>
 
-        <!-- MÓDULO FOTOGRAFÍAS -->
+        <!-- MÓDULO FOTOGRAFÍAS (NATIVE TOUCH LABELS FOR RELIABLE CAMERA & MULTI-SELECTION) -->
         <div class="border-t pt-3 space-y-2">
           <div class="flex items-center justify-between">
             <label class="block font-bold text-slate-700">📷 Evidencias Fotográficas (Hasta 5 Fotos)</label>
@@ -584,15 +585,15 @@
           </div>
           
           <div class="grid grid-cols-2 gap-2">
-            <button type="button" onclick="document.getElementById('input-camara-directa').click()" class="bg-blue-50 border border-blue-200 text-[#0078d4] hover:bg-blue-100 py-2.5 px-3 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 transition shadow-sm">
+            <label class="bg-blue-50 border border-blue-200 text-[#0078d4] hover:bg-blue-100 py-2.5 px-3 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 cursor-pointer shadow-sm active:scale-95 transition">
               <span>📷</span> Tomar Foto (Cámara)
-            </button>
-            <input type="file" id="input-camara-directa" accept="image/*" capture="environment" onchange="procesarFotosEvidencia(this)" class="hidden">
+              <input type="file" id="input-camara-directa" accept="image/*" capture="environment" onchange="procesarFotosEvidencia(this)" class="hidden">
+            </label>
 
-            <button type="button" onclick="document.getElementById('input-galeria-multi').click()" class="bg-slate-100 border border-slate-200 text-slate-700 hover:bg-slate-200 py-2.5 px-3 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 transition shadow-sm">
+            <label class="bg-slate-100 border border-slate-200 text-slate-700 hover:bg-slate-200 py-2.5 px-3 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 cursor-pointer shadow-sm active:scale-95 transition">
               <span>🖼️</span> Galería (Multi-Fotos)
-            </button>
-            <input type="file" id="input-galeria-multi" accept="image/*" multiple onchange="procesarFotosEvidencia(this)" class="hidden">
+              <input type="file" id="input-galeria-multi" accept="image/*" multiple onchange="procesarFotosEvidencia(this)" class="hidden">
+            </label>
           </div>
 
           <div id="box-galeria-preview" class="grid grid-cols-5 gap-2 pt-1 hidden"></div>
@@ -624,6 +625,16 @@
             <input type="text" id="p2-why1" placeholder="1. ¿Por qué ocurrió el defecto?" class="w-full border p-2 rounded-lg bg-slate-50">
             <input type="text" id="p2-why5" placeholder="5. Causa Raíz Principal" class="w-full border p-2 rounded-lg bg-slate-50 font-bold text-blue-900">
           </div>
+        </div>
+
+                <!-- ETIQUETA DIGITAL CÓDIGO QR DE CONTENCIÓN -->
+        <div id="box-qr-generado" class="border-2 border-dashed border-blue-400 bg-blue-50/80 p-3.5 rounded-2xl text-center space-y-1.5">
+          <div class="flex items-center justify-between px-1">
+            <span class="text-3xs font-extrabold text-[#0078d4] uppercase tracking-wider">🏷️ Etiqueta Digital QR de Trazabilidad</span>
+            <span class="text-[10px] text-blue-700 font-bold bg-blue-100 px-2 py-0.5 rounded-full">Escaneable en Planta</span>
+          </div>
+          <div id="qrcode-box" class="flex justify-center p-2 bg-white rounded-xl shadow-inner w-fit mx-auto border border-blue-100"></div>
+          <p class="text-3xs text-slate-500 font-semibold">Escanea este QR con la cámara del celular para abrir la orden y realizar la inspección en línea</p>
         </div>
 
         <!-- ACCIONES BOTONES -->
@@ -665,6 +676,16 @@
         <span id="lbl-detail-date" class="text-xs text-slate-500">Fecha: 2026-10-17</span>
       </div>
 
+            <!-- CÓDIGO QR EN DETALLE DE FOLIO -->
+      <div class="bg-blue-50/70 border border-blue-200 p-3 rounded-2xl flex items-center justify-between gap-3 shadow-sm">
+        <div>
+          <span class="text-3xs font-extrabold text-[#0078d4] uppercase tracking-wider block">🏷️ Etiqueta de Trazabilidad QR</span>
+          <strong class="text-xs text-slate-800 font-bold block">Acceso Directo al Folio</strong>
+          <p class="text-3xs text-slate-500">Escaneable desde la cámara móvil en línea de producción</p>
+        </div>
+        <div id="dt-qrcode-box" class="p-1.5 bg-white rounded-xl border border-blue-100 shadow-inner flex-shrink-0"></div>
+      </div>
+
       <div id="dt-fotos-container" class="col-span-full"></div>
       <div class="grid grid-cols-2 gap-3 text-xs">
         <div class="bg-slate-50 p-3 rounded-xl border"><span class="text-3xs text-slate-400 block font-bold">Orden OC</span><strong id="dt-oc" class="text-slate-800 font-mono">--</strong></div>
@@ -695,7 +716,7 @@
 
   <!-- JAVASCRIPT LÓGICA DE APLICACIÓN -->
   <script>
-    const URL_WEBHOOK_EXCEL = "https://script.google.com/macros/s/AKfycbx2d6aWR2vrmtoJH-66nXJIJgQoaOfldrm8P37BEyhxiYwieYIuZyYLK1NjEYbmo7-l/exec";
+    const URL_WEBHOOK_EXCEL = "https://script.google.com/macros/s/AKfycbylb5dnn5ge6tFjzH2c8s0CGjSzglFDsnHRPRNwNkLcrVTt_Tvp8AQjRqX9ARbSDTWE/exec";
 
     const relacionPartes = { "41310": "620064214", "620407083": "620407062", "29311": "41269", "620407085": "620407044", "620407084": "620407057" };
     const relacionAlmacenes = { "204121": "Coil Pack Fabrication", "204122": "Foundry", "204123": "Cold Plate Finishing", "205161": "ABS 2.0 Assembly" };
@@ -789,12 +810,10 @@
       if (rolOficial === 'Administrador') {
         const pinInput = document.getElementById('login-pin')?.value;
         if (pinInput !== "1234") {
-          alert("❌ Clave PIN de Administrador incorrecta (Default: 1234).");
+          alert("❌ Clave PIN de Administrador incorrecta (Default: 1234). Acceso denegado.");
           return;
         }
       }
-
-      cerrarModalPortal();
 
       perfilUsuario = { nombre: user, rol: rolOficial, locacion: info.locacion || "EORWK" };
       localStorage.setItem('perfil_inspector', JSON.stringify(perfilUsuario));
@@ -803,11 +822,13 @@
       document.getElementById('lbl-user-role').innerText = `${rolOficial} | ${info.locacion}`;
       document.getElementById('lbl-avatar-initials').innerText = user.split(' ').map(n=>n[0]).join('').slice(0,2);
 
+      cerrarModalPortal();
       aplicarPermisosRolUI();
       aplicarFiltrosYTabla();
     }
 
     function aplicarPermisosRolUI() {
+      if (!perfilUsuario) return;
       const isDiffAdmin = perfilUsuario.rol === 'Administrador';
       const isConsulta = perfilUsuario.rol === 'Consulta';
 
@@ -821,10 +842,15 @@
       if (btnNuevaNcr) btnNuevaNcr.style.display = isConsulta ? 'none' : 'flex';
       if (btnNuevaNcrTop) btnNuevaNcrTop.style.display = isConsulta ? 'none' : 'flex';
 
+      // Config Admin & Catálogos Maestros: STRICTLY FOR ADMINISTRATOR ONLY
       const navConfig = document.getElementById('nav-config');
       const navCatLink = document.querySelector('a[href="catalogos.html"]');
       if (navConfig) navConfig.style.display = isDiffAdmin ? 'flex' : 'none';
       if (navCatLink) navCatLink.style.display = isDiffAdmin ? 'flex' : 'none';
+
+      // Bottom nav links for mobile
+      const mobileCatLinks = document.querySelectorAll('.mobile-bottom-nav a[href="catalogos.html"]');
+      mobileCatLinks.forEach(el => el.style.display = isDiffAdmin ? 'flex' : 'none');
     }
 
     function navegarAModulo(modId) {
@@ -841,6 +867,16 @@
       if (modId === 'mod-reports') renderizarParetoAnaliticos();
       if (modId === 'mod-historial') renderizarHistorialGlobal();
     }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      const params = new URLSearchParams(window.location.search);
+      const folioFromUrl = params.get('folio');
+      if (folioFromUrl && baseDatos[folioFromUrl]) {
+        setTimeout(() => {
+          verDetalleNcr(folioFromUrl);
+        }, 500);
+      }
+    });
 
     function autocompletarSubensamble() {
       const p = document.getElementById('reg-parte').value;
@@ -966,6 +1002,23 @@
       renderizarGaleriaPreview();
     }
 
+    
+    function generarEtiquetaQR(folio, elementId = 'qrcode-box') {
+      const qrel = document.getElementById(elementId);
+      if (!qrel) return;
+      qrel.innerHTML = "";
+      const urlApp = `${window.location.origin}${window.location.pathname}?folio=${encodeURIComponent(folio)}`;
+      
+      if (typeof QRCode !== 'undefined') {
+        try {
+          new QRCode(qrel, { text: urlApp, width: 90, height: 90 });
+          return;
+        } catch(err){}
+      }
+      const qrUrl = "https://chart.googleapis.com/chart?cht=qr&chs=90x90&chl=" + encodeURIComponent(urlApp);
+      qrel.innerHTML = `<img src="${qrUrl}" alt="QR ${folio}" class="w-20 h-20 mx-auto rounded shadow-sm">`;
+    }
+
     function openNewNcrModal() {
       esModoEdicion = false;
       const seq = String(Object.keys(baseDatos).length + 1001);
@@ -977,7 +1030,7 @@
       document.getElementById('box-disposicion-balance').classList.add('hidden');
       document.getElementById('form-paso1').reset();
       limpiarFotos();
-
+      generarEtiquetaQR(folioActual, 'qrcode-box');
       document.getElementById('modal-form-ncr').classList.remove('hidden');
     }
 
@@ -1108,7 +1161,12 @@
     }
 
     
-    function imprimirReportePDF(folioTarget) {
+    function abrirZoomFoto(src, caption) { const modal = document.getElementById('modal-foto-zoom'); const img = document.getElementById('img-zoom-target'); const cap = document.getElementById('lbl-zoom-caption'); if (modal && img) { img.src = src; if (cap) cap.innerText = caption || 'Evidencia Fotográfica NCR'; modal.classList.remove('hidden'); modal.style.display = 'flex'; } }
+function cerrarZoomFoto() { const modal = document.getElementById('modal-foto-zoom'); if (modal) { modal.classList.add('hidden'); modal.style.display = 'none'; } }
+function abrirPreviewPdf(folioTarget) { imprimirReportePDF(folioTarget, true); }
+function cerrarPreviewPdf() { const modal = document.getElementById('modal-preview-pdf'); if (modal) { modal.classList.add('hidden'); modal.style.display = 'none'; } }
+function imprimirDesdePreview() { window.print(); }
+function imprimirReportePDF(folioTarget) {
       const targetFolio = folioTarget || folioActual || Object.keys(baseDatos)[0];
       if (!targetFolio || !baseDatos[targetFolio]) {
         alert("⚠️ Selecciona o crea un folio antes de exportar a PDF.");
@@ -1297,6 +1355,7 @@ function aplicarFiltrosYTabla() {
         `;
       });
 
+      generarEtiquetaQR(f, 'dt-qrcode-box');
       document.getElementById('modal-detail-ncr').classList.remove('hidden');
     }
 
@@ -1654,12 +1713,9 @@ function aplicarFiltrosYTabla() {
     }
 
     function abrirModalConfigAdmin() {
-      if (perfilUsuario.rol !== 'Administrador') {
-        const pin = prompt("🔒 Acceso Exclusivo de Administrador (Carlos Hdz). Ingresa la clave PIN (Default: 1234):");
-        if (pin !== "1234") {
-          alert("❌ PIN incorrecto. Acceso denegado.");
-          return;
-        }
+      if (!perfilUsuario || perfilUsuario.rol !== 'Administrador') {
+        alert("⛔ Acceso denegado. Se requieren privilegios de Administrador (Carlos Hdz).");
+        return;
       }
       if (confirm("⚙️ Panel de Administrador.\n\n[Aceptar] -> Abrir Catálogos Maestros (catalogos.html)\n[Cancelar] -> Abrir Bitácora de Errores de Sincronización")) {
         window.location.href = "catalogos.html";
@@ -1780,7 +1836,40 @@ function aplicarFiltrosYTabla() {
 
 
   <!-- REPORTE IMPRESO PDF -->
-  <div id="section-printable-pdf" class="hidden print:block p-8 bg-white font-sans text-slate-800 space-y-6">
+  
+
+
+  <!-- BARRA DE NAVEGACIÓN INFERIOR PARA CELULAR (MOBILE BOTTOM NAV) -->
+  <nav class="mobile-bottom-nav fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-slate-200 z-40 py-2 px-2 flex justify-around items-center shadow-2xl no-print">
+    <button onclick="navegarAModulo('mod-dashboard')" id="mnav-dashboard" class="flex flex-col items-center gap-0.5 text-slate-500 hover:text-[#0078d4]">
+      <span class="text-lg leading-none">📊</span>
+      <span class="text-[10px] font-bold">Inicio</span>
+    </button>
+    <button onclick="navegarAModulo('mod-reports')" id="mnav-reports" class="flex flex-col items-center gap-0.5 text-slate-500 hover:text-[#0078d4]">
+      <span class="text-lg leading-none">📈</span>
+      <span class="text-[10px] font-bold">Pareto</span>
+    </button>
+    <button onclick="openNewNcrModal()" class="flex flex-col items-center gap-0.5 text-white bg-[#0078d4] px-3.5 py-2 rounded-2xl shadow-lg -mt-5 border-2 border-white font-bold active:scale-95 transition">
+      <span class="text-xl leading-none">➕</span>
+      <span class="text-[9px] font-extrabold uppercase tracking-tight">Nueva NCR</span>
+    </button>
+    <button onclick="navegarAModulo('mod-historial')" id="mnav-historial" class="flex flex-col items-center gap-0.5 text-slate-500 hover:text-[#0078d4]">
+      <span class="text-lg leading-none">📋</span>
+      <span class="text-[10px] font-bold">Historial</span>
+    </button>
+    <a href="catalogos.html" class="flex flex-col items-center gap-0.5 text-slate-500 hover:text-[#0078d4]">
+      <span class="text-lg leading-none">🗂️</span>
+      <span class="text-[10px] font-bold">Catálogos</span>
+    </a>
+  </nav>
+
+
+
+  <!-- SECCIÓN IMPRIMIBLE REPORTE PDF (DIRECT CHILD OF BODY) -->
+  <div id="modal-foto-zoom" class="fixed inset-0 bg-slate-950/90 backdrop-blur-md z-50 hidden flex items-center justify-center p-4" onclick="cerrarZoomFoto()"><div class="relative max-w-4xl w-full text-center space-y-3" onclick="event.stopPropagation()"><button type="button" onclick="cerrarZoomFoto()" class="absolute -top-10 right-0 text-white hover:text-slate-300 text-2xl font-extrabold p-2 bg-slate-800/80 rounded-full w-10 h-10 flex items-center justify-center border border-slate-700 shadow-lg">✕</button><img id="img-zoom-target" src="" class="max-h-[85vh] max-w-full mx-auto rounded-2xl object-contain shadow-2xl border border-slate-800 bg-slate-900" alt="Evidencia Ampliada"><p id="lbl-zoom-caption" class="text-xs font-bold text-slate-300">Evidencia Fotográfica NCR</p></div></div>
+<div id="modal-preview-pdf" class="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-3 md:p-6"><div class="bg-white rounded-3xl max-w-3xl w-full max-h-[92vh] overflow-y-auto shadow-2xl space-y-4 border border-slate-200 p-4 md:p-6 relative"><div class="flex items-center justify-between border-b pb-3 no-print"><div class="flex items-center gap-2.5"><div class="w-10 h-10 bg-blue-100 text-[#0078d4] rounded-xl flex items-center justify-center text-xl font-extrabold">📄</div><div><h2 class="text-base font-extrabold text-slate-800">Previsualización de Reporte Oficial (5W1H)</h2><p class="text-3xs text-slate-500">Documento listo para impresión o descarga en PDF</p></div></div><div class="flex items-center gap-2"><button type="button" onclick="imprimirDesdePreview()" class="bg-[#0078d4] hover:bg-blue-700 text-white px-4 py-2 rounded-xl text-xs font-bold shadow flex items-center gap-1.5 transition"><span>🖨️</span> Imprimir / Guardar PDF</button><button type="button" onclick="cerrarPreviewPdf()" class="text-slate-400 hover:text-slate-700 text-xl font-bold p-1">✕</button></div></div><div id="preview-pdf-content" class="bg-slate-50 p-4 md:p-6 rounded-2xl border border-slate-200 text-slate-800 space-y-4"></div></div></div>
+
+<div id="section-printable-pdf" class="hidden print:block p-8 bg-white font-sans text-slate-800 space-y-6">
     <div class="flex justify-between items-start border-b-2 border-slate-800 pb-4">
       <div>
         <span class="text-xs font-bold text-[#0078d4] uppercase tracking-wider">SISTEMA DE CONTROL DE CALIDAD NCR</span>
@@ -1841,31 +1930,6 @@ function aplicarFiltrosYTabla() {
       </div>
     </div>
   </div>
-
-
-  <!-- BARRA DE NAVEGACIÓN INFERIOR PARA CELULAR (MOBILE BOTTOM NAV) -->
-  <nav class="mobile-bottom-nav fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-slate-200 z-40 py-2 px-2 flex justify-around items-center shadow-2xl no-print">
-    <button onclick="navegarAModulo('mod-dashboard')" id="mnav-dashboard" class="flex flex-col items-center gap-0.5 text-slate-500 hover:text-[#0078d4]">
-      <span class="text-lg leading-none">📊</span>
-      <span class="text-[10px] font-bold">Inicio</span>
-    </button>
-    <button onclick="navegarAModulo('mod-reports')" id="mnav-reports" class="flex flex-col items-center gap-0.5 text-slate-500 hover:text-[#0078d4]">
-      <span class="text-lg leading-none">📈</span>
-      <span class="text-[10px] font-bold">Pareto</span>
-    </button>
-    <button onclick="openNewNcrModal()" class="flex flex-col items-center gap-0.5 text-white bg-[#0078d4] px-3.5 py-2 rounded-2xl shadow-lg -mt-5 border-2 border-white font-bold active:scale-95 transition">
-      <span class="text-xl leading-none">➕</span>
-      <span class="text-[9px] font-extrabold uppercase tracking-tight">Nueva NCR</span>
-    </button>
-    <button onclick="navegarAModulo('mod-historial')" id="mnav-historial" class="flex flex-col items-center gap-0.5 text-slate-500 hover:text-[#0078d4]">
-      <span class="text-lg leading-none">📋</span>
-      <span class="text-[10px] font-bold">Historial</span>
-    </button>
-    <a href="catalogos.html" class="flex flex-col items-center gap-0.5 text-slate-500 hover:text-[#0078d4]">
-      <span class="text-lg leading-none">🗂️</span>
-      <span class="text-[10px] font-bold">Catálogos</span>
-    </a>
-  </nav>
 
 </body>
 </html>
