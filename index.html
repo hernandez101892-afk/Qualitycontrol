@@ -55,10 +55,9 @@
 
     /* Print styles */
     @media print {
-      .no-print, .sidebar, nav, button { display: none !important; }
-      .main-content { width: 100% !important; padding: 0 !important; }
-      body { background: white !important; }
-      .card { border: 1px solid #ddd !important; box-shadow: none !important; }
+      body > *:not(#section-printable-pdf) { display: none !important; }
+      #section-printable-pdf { display: block !important; visibility: visible !important; position: absolute; left: 0; top: 0; width: 100%; }
+      .no-print { display: none !important; }
     }
   </style>
 </head>
@@ -527,20 +526,14 @@
         </div>
 
         <!-- MÓDULO FOTOGRAFÍAS -->
-        <!-- CÁMARA Y ARCHIVOS FOTOGRÁFICOS MULTI-SELECCIÓN -->
-        <div class="space-y-2 border p-3.5 rounded-2xl bg-slate-50">
+        <div class="border-t pt-3 space-y-2">
           <div class="flex items-center justify-between">
-            <label class="block font-bold text-slate-700 text-xs">📸 Evidencias Fotográficas (Hasta 5 fotos)</label>
-            <span id="lbl-fotos-count" class="text-3xs font-bold text-[#0078d4] bg-blue-50 px-2 py-0.5 rounded-full border border-blue-200">0/5 cargadas</span>
+            <label class="block font-bold text-slate-700">📷 Evidencias Fotográficas (GitHub Pages)</label>
+            <button type="button" onclick="limpiarFoto()" id="btn-limpiar-foto" class="hidden text-3xs text-rose-600 font-bold hover:underline">Eliminar foto</button>
           </div>
-
-          <div id="box-subir-foto">
-            <input type="file" id="reg-foto-input" accept="image/*" multiple onchange="procesarFotosEvidencia(this)" class="w-full text-xs border p-2 rounded-xl bg-white text-slate-700">
-            <p class="text-[10px] text-slate-400 mt-1">Puedes seleccionar varias fotografías a la vez o capturar varias imágenes consecutivamente (máximo 5 fotos total).</p>
-          </div>
-
-          <!-- Miniaturas cargadas con eliminación individual -->
-          <div id="box-galeria-preview" class="grid grid-cols-2 sm:grid-cols-5 gap-2 pt-1 hidden">
+          <input type="file" id="reg-foto-input" accept="image/*" capture="environment" onchange="procesarFotoEvidencia(this)" class="w-full text-xs border p-2 rounded-xl bg-slate-50">
+          <div id="box-vista-previa-foto" class="hidden text-center border rounded-xl p-2 bg-slate-50">
+            <img id="img-vista-previa" class="max-h-40 rounded-lg mx-auto object-contain border" alt="Evidencia">
           </div>
         </div>
 
@@ -598,7 +591,12 @@
           <span class="text-3xs font-extrabold text-[#0078d4] tracking-wider uppercase">DETALLE NCR</span>
           <h2 id="lbl-detail-folio" class="text-xl font-extrabold text-slate-800">FOL-2026-1001</h2>
         </div>
-        <button type="button" onclick="document.getElementById('modal-detail-ncr').classList.add('hidden')" class="text-slate-400 hover:text-slate-700 text-xl font-bold p-1">✕</button>
+        <div class="flex items-center gap-2">
+          <button onclick="imprimirReportePDF(document.getElementById('lbl-detail-folio').innerText)" class="bg-[#0078d4] text-white px-3 py-1.5 rounded-xl text-xs font-bold hover:bg-blue-700 flex items-center gap-1 shadow-sm">
+            <span>🖨️</span> Exportar PDF
+          </button>
+          <button type="button" onclick="document.getElementById('modal-detail-ncr').classList.add('hidden')" class="text-slate-400 hover:text-slate-700 text-xl font-bold p-1">✕</button>
+        </div>
       </div>
 
       <div class="flex items-center gap-3">
@@ -967,13 +965,81 @@
       }
     }
 
-    function sincronizarConExcelNube(payload) {
-      if (!URL_WEBHOOK_EXCEL) return;
-      fetch(URL_WEBHOOK_EXCEL, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
-      .catch(err => console.error("Error webhook sync:", err));
+    
+    function imprimirReportePDF(folioTarget) {
+      const targetFolio = folioTarget || folioActual || Object.keys(baseDatos)[0];
+      if (!targetFolio || !baseDatos[targetFolio]) {
+        alert("⚠️ Selecciona o crea un folio antes de exportar a PDF.");
+        return;
+      }
+      const o = baseDatos[targetFolio];
+
+      document.getElementById('pdf-print-folio').innerText = o.folio;
+      document.getElementById('pdf-print-date').innerText = `Fecha: ${o.fecha || new Date().toISOString().slice(0,10)}`;
+      document.getElementById('pdf-print-oc').innerText = o.oc || '--';
+      document.getElementById('pdf-print-parte').innerText = o.numParte || '--';
+      document.getElementById('pdf-print-subensamble').innerText = o.subensamble || '--';
+      document.getElementById('pdf-print-qty').innerText = `${o.qty || 0} pzs`;
+      document.getElementById('pdf-print-inspector').innerText = o.inspector || '--';
+      document.getElementById('pdf-print-almacen').innerText = `${o.almacen || ''} - ${o.nombreAlmacen || ''}`;
+      document.getElementById('pdf-print-estampa').innerText = o.estampa || '--';
+      document.getElementById('pdf-print-operador').innerText = o.operador || '--';
+      document.getElementById('pdf-print-defecto').innerText = o.defecto || '--';
+      document.getElementById('pdf-print-why1').innerText = o.why1 || '--';
+      document.getElementById('pdf-print-why5').innerText = o.why5 || '--';
+      document.getElementById('pdf-print-firma-label').innerText = `Firma: ${o.inspector || 'Inspector'}`;
+
+      const qrBox = document.getElementById('pdf-qrcode-box');
+      if (qrBox) {
+        const qrUrl = "https://chart.googleapis.com/chart?cht=qr&chs=90x90&chl=" + encodeURIComponent(o.folio);
+        qrBox.innerHTML = '<img src="' + qrUrl + '" alt="QR Code" class="w-16 h-16 mx-auto">';
+      }
+
+      const fotosGrid = document.getElementById('pdf-print-fotos-grid');
+      if (fotosGrid) {
+        fotosGrid.innerHTML = '';
+        const fotos = o.fotosEvidencia || [o.f1, o.f2, o.f3, o.f4, o.f5].filter(Boolean);
+        if (fotos.length > 0) {
+          fotos.forEach((f, idx) => {
+            if (f) {
+              fotosGrid.innerHTML += '<div class="border rounded p-1 bg-slate-50"><img src="' + f + '" class="max-h-28 mx-auto object-contain rounded" alt="Foto"><span class="text-3xs text-slate-400 block mt-0.5">Evidencia ' + (idx+1) + '</span></div>';
+            }
+          });
+        } else {
+          fotosGrid.innerHTML = '<p class="text-3xs text-slate-400 col-span-3 italic py-2">Sin evidencias fotográficas adjuntas</p>';
+        }
+      }
+
+      window.print();
     }
 
-    function aplicarFiltrosYTabla() {
+    function sincronizarConExcelNube(payload) {
+      if (!URL_WEBHOOK_EXCEL || URL_WEBHOOK_EXCEL.includes('EJEMPLO')) {
+        mostrarToastSync('⚠️ URL Webhook no configurada', true);
+        registrarErrorLocalSync(payload.tipoAccion || 'REGISTRO_NCR', payload.folio || 'N/A', payload.inspector || perfilUsuario.nombre, 'URL Webhook no configurada', payload);
+        return;
+      }
+
+      mostrarToastSync('⏳ Enviando datos a Google Sheets...');
+
+      fetch(URL_WEBHOOK_EXCEL, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: { 'Content-Type': 'text/plain' },
+        body: JSON.stringify(payload)
+      })
+      .then(() => {
+        mostrarToastSync('✅ Datos guardados y sincronizados con Google Sheets');
+      })
+      .catch(err => {
+        console.error("Error webhook sync:", err);
+        mostrarToastSync('⚠️ Error de red. Guardado en cola local.', true);
+        registrarErrorLocalSync(payload.tipoAccion || 'REGISTRO_NCR', payload.folio || 'N/A', payload.inspector || perfilUsuario.nombre, err.toString(), payload);
+      });
+    }
+
+
+function aplicarFiltrosYTabla() {
       const q = (document.getElementById('filter-search')?.value || '').toLowerCase();
       const st = document.getElementById('filter-status')?.value || '';
       const insp = document.getElementById('filter-inspector')?.value || '';
@@ -1544,6 +1610,70 @@
       </div>
       <div class="flex justify-end pt-2">
         <button onclick="document.getElementById('modal-detalle-error').classList.add('hidden')" class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-4 py-1.5 rounded-xl font-bold text-xs">Aceptar</button>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- REPORTE IMPRESO PDF -->
+  <div id="section-printable-pdf" class="hidden print:block p-8 bg-white font-sans text-slate-800 space-y-6">
+    <div class="flex justify-between items-start border-b-2 border-slate-800 pb-4">
+      <div>
+        <span class="text-xs font-bold text-[#0078d4] uppercase tracking-wider">SISTEMA DE CONTROL DE CALIDAD NCR</span>
+        <h1 class="text-xl font-extrabold text-slate-900">REPORTE OFICIAL DE MATERIAL NO CONFORME (5W1H)</h1>
+        <p class="text-xs text-slate-500">Documento institucional de trazabilidad y contención en planta</p>
+      </div>
+      <div class="text-right flex items-center gap-4">
+        <div id="pdf-qrcode-box" class="p-1 border rounded bg-white shadow-sm"></div>
+        <div>
+          <span class="text-3xs font-bold text-slate-400 uppercase block">FOLIO ID</span>
+          <strong id="pdf-print-folio" class="text-lg font-mono font-extrabold text-[#0078d4]">FOL-2026-1001</strong>
+          <p id="pdf-print-date" class="text-3xs text-slate-500">Fecha: 2026-10-17</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-4 gap-3 text-xs bg-slate-50 p-4 rounded-xl border border-slate-200">
+      <div><span class="text-3xs text-slate-400 block font-bold">ORDEN OC</span><strong id="pdf-print-oc" class="font-mono text-slate-800">--</strong></div>
+      <div><span class="text-3xs text-slate-400 block font-bold">NUMERO DE PARTE</span><strong id="pdf-print-parte" class="font-mono text-slate-800">--</strong></div>
+      <div><span class="text-3xs text-slate-400 block font-bold">SUBENSAMBLE</span><strong id="pdf-print-subensamble" class="font-mono text-slate-800">--</strong></div>
+      <div><span class="text-3xs text-slate-400 block font-bold">CANTIDAD TOTAL</span><strong id="pdf-print-qty" class="text-slate-800">--</strong></div>
+      <div><span class="text-3xs text-slate-400 block font-bold">INSPECTOR</span><strong id="pdf-print-inspector" class="text-slate-800">--</strong></div>
+      <div><span class="text-3xs text-slate-400 block font-bold">ALMACEN ORIGEN</span><strong id="pdf-print-almacen" class="text-slate-800">--</strong></div>
+      <div><span class="text-3xs text-slate-400 block font-bold">ESTAMPA OPERADOR</span><strong id="pdf-print-estampa" class="font-mono text-slate-800">--</strong></div>
+      <div><span class="text-3xs text-slate-400 block font-bold">OPERADOR LINEA</span><strong id="pdf-print-operador" class="text-slate-800">--</strong></div>
+    </div>
+
+    <div class="border rounded-xl p-4 space-y-2 bg-slate-50/50">
+      <h3 class="font-bold text-xs text-slate-800 border-b pb-1">⚠️ Hallazgo & Defecto Reportado</h3>
+      <p id="pdf-print-defecto" class="text-xs font-bold text-rose-700">--</p>
+    </div>
+
+    <div class="border rounded-xl p-4 space-y-2">
+      <h3 class="font-bold text-xs text-slate-800 border-b pb-1">🔍 Análisis Causa Raíz (5 Why's & 6M)</h3>
+      <div class="grid grid-cols-2 gap-2 text-xs">
+        <p><strong>1. ¿Por qué?:</strong> <span id="pdf-print-why1">--</span></p>
+        <p><strong>5. Causa Raíz:</strong> <span id="pdf-print-why5" class="font-bold text-blue-900">--</span></p>
+      </div>
+    </div>
+
+    <div class="border rounded-xl p-4 space-y-2">
+      <h3 class="font-bold text-xs text-slate-800 border-b pb-1">📷 Evidencias Fotográficas de la No Conformancia</h3>
+      <div id="pdf-print-fotos-grid" class="grid grid-cols-3 gap-2 text-center"></div>
+    </div>
+
+    <div class="pt-8 flex justify-between items-end border-t border-slate-200">
+      <div class="text-center w-52">
+        <div class="border-b border-slate-400 h-14 flex items-center justify-center mb-1">
+          <span class="text-3xs text-slate-400 italic">Firma Digital Registrada</span>
+        </div>
+        <p id="pdf-print-firma-label" class="text-3xs font-bold text-slate-700">Firma Inspector Autorizado</p>
+      </div>
+      <div class="text-center w-52">
+        <div class="border-b border-slate-400 h-14 flex items-center justify-center mb-1">
+          <span class="text-3xs text-slate-400 italic">Firma Visto Bueno</span>
+        </div>
+        <p class="text-3xs font-bold text-slate-700">Firma Supervisor / Ing. Calidad</p>
       </div>
     </div>
   </div>
