@@ -488,13 +488,13 @@
       // Actualizar UI con el perfil activo
       const lblPerfil = document.getElementById('lbl-perfil-activo');
       if (lblPerfil) {
-        lblPerfil.innerText = ;
+        lblPerfil.innerText = "Inspector: " + perfilUsuario.nombre + " | Rol: " + perfilUsuario.rol + " (" + perfilUsuario.locacion + ")";
       }
 
       const pdfInsp = document.getElementById('pdf-inspector');
       if (pdfInsp) pdfInsp.innerText = perfilUsuario.nombre;
       const pdfInspFirma = document.getElementById('pdf-inspector-firma');
-      if (pdfInspFirma) pdfInspFirma.innerText = ;
+      if (pdfInspFirma) pdfInspFirma.innerText = perfilUsuario.nombre + " (" + perfilUsuario.rol + ")";
 
       aplicarPermisosRBAC(rol);
     }
