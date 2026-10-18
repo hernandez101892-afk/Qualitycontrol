@@ -1170,41 +1170,49 @@
       fetch(URL_WEBHOOK_EXCEL + '?action=getRegistros')
         .then(r => r.json())
         .then(data => {
-          if (Array.isArray(data) && data.length > 0) {
-            let actualizados = 0;
-            data.forEach(item => {
-              if (item && item.folio) {
-                const localHist = baseDatos[item.folio]?.historial || [];
-                const rawFotos = item.fotosEvidencia || [item.f1, item.f2, item.f3, item.f4, item.f5].filter(Boolean);
-                const fotosNorm = rawFotos.map(normalizarFotoUrl).filter(Boolean);
-                const f1Norm = normalizarFotoUrl(item.f1);
-                const f2Norm = normalizarFotoUrl(item.f2);
-                const f3Norm = normalizarFotoUrl(item.f3);
-                const f4Norm = normalizarFotoUrl(item.f4);
-                const f5Norm = normalizarFotoUrl(item.f5);
+          if (Array.isArray(data)) {
+            if (data.length > 0) {
+              const cloudDb = {};
+              let actualizados = 0;
+              data.forEach(item => {
+                if (item && item.folio) {
+                  const localHist = baseDatos[item.folio]?.historial || [];
+                  const rawFotos = item.fotosEvidencia || [item.f1, item.f2, item.f3, item.f4, item.f5].filter(Boolean);
+                  const fotosNorm = rawFotos.map(normalizarFotoUrl).filter(Boolean);
+                  const f1Norm = normalizarFotoUrl(item.f1);
+                  const f2Norm = normalizarFotoUrl(item.f2);
+                  const f3Norm = normalizarFotoUrl(item.f3);
+                  const f4Norm = normalizarFotoUrl(item.f4);
+                  const f5Norm = normalizarFotoUrl(item.f5);
 
-                baseDatos[item.folio] = {
-                  ...baseDatos[item.folio],
-                  ...item,
-                  f1: f1Norm,
-                  f2: f2Norm,
-                  f3: f3Norm,
-                  f4: f4Norm,
-                  f5: f5Norm,
-                  fotosEvidencia: fotosNorm.length > 0 ? fotosNorm : [f1Norm, f2Norm, f3Norm, f4Norm, f5Norm].filter(Boolean),
-                  historial: (item.historial && Array.isArray(item.historial) && item.historial.length > 0) ? item.historial : localHist
-                };
-                actualizados++;
+                  cloudDb[item.folio] = {
+                  esNube: true,
+                  sincronizadoNube: true,
+                    ...baseDatos[item.folio],
+                    ...item,
+                    f1: f1Norm,
+                    f2: f2Norm,
+                    f3: f3Norm,
+                    f4: f4Norm,
+                    f5: f5Norm,
+                    fotosEvidencia: fotosNorm.length > 0 ? fotosNorm : [f1Norm, f2Norm, f3Norm, f4Norm, f5Norm].filter(Boolean),
+                    historial: (item.historial && Array.isArray(item.historial) && item.historial.length > 0) ? item.historial : localHist
+                  };
+                  actualizados++;
+                }
+              });
+              baseDatos = cloudDb;
+              localStorage.setItem('db_calidad_v3', JSON.stringify(baseDatos));
+              if (!silencioso) {
+                mostrarToastSync(`✅ ${actualizados} folios sincronizados en vivo desde Google Sheets`);
               }
-            });
-            localStorage.setItem('db_calidad_v3', JSON.stringify(baseDatos));
+            } else if (!silencioso) {
+              mostrarToastSync('ℹ️ Sin registros en la nube aún');
+            }
             aplicarFiltrosYTabla();
             renderizarHistorialGlobal();
-            if (!silencioso) {
-              mostrarToastSync(`✅ ${actualizados} folios sincronizados desde la nube`);
-            }
-          } else if (!silencioso) {
-            mostrarToastSync('ℹ️ Registros al día con la nube');
+          } else {
+            console.warn("Respuesta no válida de la nube:", data);
           }
         })
         .catch(err => {
@@ -1651,7 +1659,14 @@ function aplicarFiltrosYTabla() {
           const badgeClass = { Abierta: 'status-open', Contención: 'status-containment', Investigación: 'status-investigation', 'Pendiente Disposición': 'status-pending', Cerrada: 'status-closed', Cancelada: 'status-cancelled' }[o.estatus] || 'status-open';
           tbody.innerHTML += `
             <tr class="hover:bg-blue-50/50 transition">
-              <td class="p-3 font-bold text-[#0078d4]">${o.folio}</td>
+              <td class="p-3 font-bold text-[#0078d4]">
+                <div class="flex items-center gap-1.5">
+                  <span>${o.folio}</span>
+                  ${(o.esNube || o.sincronizadoNube) 
+                    ? '<span class="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-100 text-emerald-800 border border-emerald-300 shadow-2xs" title="Confirmado en la nube Google Sheets">☁️ Nube</span>' 
+                    : '<span class="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-extrabold bg-amber-100 text-amber-800 border border-amber-300 animate-pulse shadow-2xs" title="Guardado localmente, pendiente de sincronizar">💾 Local</span>'}
+                </div>
+              </td>
               <td class="p-3"><span class="status-badge ${badgeClass}">${o.estatus || 'Abierta'}</span></td>
               <td class="p-3 font-mono">${o.oc || ''}</td>
               <td class="p-3 font-mono font-bold">${o.numParte || ''}</td>
