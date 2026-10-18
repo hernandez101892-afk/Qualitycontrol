@@ -890,6 +890,8 @@
 };
 
     let baseDatos = JSON.parse(localStorage.getItem('db_calidad_v3') || '{}');
+    let colaPendientes = JSON.parse(localStorage.getItem('cola_pendientes_v1') || '[]');
+    const INTERVALO_SYNC_MS = 15000; // Sincronización periódica cada 15 segundos
     if (Object.keys(baseDatos).length === 0) {
       baseDatos = {
         "FOL-2026-1001": { folio: "FOL-2026-1001", fecha: "2026-10-01", oc: "OC1042851", numParte: "41310", qty: 120, buenas: 100, malas: 20, pendientes: 0, defecto: "Fuga en linea", inspector: "Rene Rodriguez", almacen: "204121", estatus: "Abierta", scrap: 20, rework: 60 },
@@ -1152,14 +1154,13 @@
     }
 
 
-    function cargarRegistrosDesdeNube(silencioso) {
+    function cargarRegistrosDesdeNube(silencioso = false) {
       if (!URL_WEBHOOK_EXCEL || URL_WEBHOOK_EXCEL.includes('EJEMPLO')) return;
       
       const refreshIcons = document.querySelectorAll('#btn-refresh-nube, #btn-refresh-mobile');
       refreshIcons.forEach(icon => icon.classList.add('animate-spin'));
 
-      
-      // Cargar catálogos maestros desde la nube
+      // 1. Cargar catálogos maestros desde la nube
       fetch(URL_WEBHOOK_EXCEL + '?action=getCatalogos')
         .then(r => r.json())
         .then(cats => {
@@ -1167,59 +1168,64 @@
         })
         .catch(err => console.log("Catalog fetch info:", err));
 
+      // 2. Leer registros de la nube y RECONCILIAR preservando ediciones locales no confirmadas
       fetch(URL_WEBHOOK_EXCEL + '?action=getRegistros')
-        .then(r => r.json())
+        .then(r => {
+          if (!r.ok) throw new Error(`HTTP ${r.status}`);
+          return r.json();
+        })
         .then(data => {
           if (Array.isArray(data)) {
-            if (data.length > 0) {
-              const cloudDb = {};
-              let actualizados = 0;
-              data.forEach(item => {
-                if (item && item.folio) {
-                  const localHist = baseDatos[item.folio]?.historial || [];
-                  const rawFotos = item.fotosEvidencia || [item.f1, item.f2, item.f3, item.f4, item.f5].filter(Boolean);
-                  const fotosNorm = rawFotos.map(normalizarFotoUrl).filter(Boolean);
-                  const f1Norm = normalizarFotoUrl(item.f1);
-                  const f2Norm = normalizarFotoUrl(item.f2);
-                  const f3Norm = normalizarFotoUrl(item.f3);
-                  const f4Norm = normalizarFotoUrl(item.f4);
-                  const f5Norm = normalizarFotoUrl(item.f5);
+            // Mapa de folios locales pendientes en cola de reintentos
+            const setPendientes = new Set(colaPendientes.map(x => x.payload?.folio).filter(Boolean));
+            let actualizados = 0;
 
-                  cloudDb[item.folio] = {
-                  esNube: true,
-                  sincronizadoNube: true,
-                    ...baseDatos[item.folio],
-                    ...item,
-                    f1: f1Norm,
-                    f2: f2Norm,
-                    f3: f3Norm,
-                    f4: f4Norm,
-                    f5: f5Norm,
-                    fotosEvidencia: fotosNorm.length > 0 ? fotosNorm : [f1Norm, f2Norm, f3Norm, f4Norm, f5Norm].filter(Boolean),
-                    historial: (item.historial && Array.isArray(item.historial) && item.historial.length > 0) ? item.historial : localHist
-                  };
-                  actualizados++;
+            data.forEach(item => {
+              if (item && item.folio) {
+                // REGLA CRÍTICA DE RECONCILIACIÓN:
+                // Si el folio local tiene cambios pendientes en la cola, NO sobreescribirlo con la versión antigua de la nube
+                if (setPendientes.has(item.folio) && baseDatos[item.folio]?.esPendiente) {
+                  return;
                 }
-              });
-              baseDatos = cloudDb;
-              localStorage.setItem('db_calidad_v3', JSON.stringify(baseDatos));
-              if (!silencioso) {
-                mostrarToastSync(`✅ ${actualizados} folios sincronizados en vivo desde Google Sheets`);
+
+                const localHist = baseDatos[item.folio]?.historial || [];
+                const rawFotos = item.fotosEvidencia || [item.f1, item.f2, item.f3, item.f4, item.f5].filter(Boolean);
+                const fotosNorm = rawFotos.map(normalizarFotoUrl).filter(Boolean);
+                const f1Norm = normalizarFotoUrl(item.f1);
+                const f2Norm = normalizarFotoUrl(item.f2);
+                const f3Norm = normalizarFotoUrl(item.f3);
+                const f4Norm = normalizarFotoUrl(item.f4);
+                const f5Norm = normalizarFotoUrl(item.f5);
+
+                baseDatos[item.folio] = {
+                  ...baseDatos[item.folio],
+                  ...item,
+                  f1: f1Norm,
+                  f2: f2Norm,
+                  f3: f3Norm,
+                  f4: f4Norm,
+                  f5: f5Norm,
+                  fotosEvidencia: fotosNorm.length > 0 ? fotosNorm : [f1Norm, f2Norm, f3Norm, f4Norm, f5Norm].filter(Boolean),
+                  historial: (item.historial && Array.isArray(item.historial) && item.historial.length > 0) ? item.historial : localHist,
+                  esPendiente: false
+                };
+                actualizados++;
               }
-            } else if (!silencioso) {
-              mostrarToastSync('ℹ️ Sin registros en la nube aún');
-            }
+            });
+
+            localStorage.setItem('db_calidad_v3', JSON.stringify(baseDatos));
             aplicarFiltrosYTabla();
             renderizarHistorialGlobal();
+            if (!silencioso) {
+              mostrarToastSync(`✅ ${actualizados} folios sincronizados y reconciliados con Google Sheets`);
+            }
           } else {
-            console.warn("Respuesta no válida de la nube:", data);
+            console.warn("Respuesta no válida de la nube (no es un arreglo JSON):", data);
           }
         })
         .catch(err => {
-          console.error("Error al sincronizar registros desde la nube:", err);
-          if (!silencioso) {
-            mostrarToastSync('⚠️ Fallo de conexión con la nube', true);
-          }
+          console.error("Error consultando la nube:", err);
+          if (!silencioso) mostrarToastSync('⚠️ Sin conexión con la nube. Mostrando datos locales.', true);
         })
         .finally(() => {
           refreshIcons.forEach(icon => icon.classList.remove('animate-spin'));
@@ -1229,7 +1235,8 @@
     // Auto-sincronización periódica cada 15 segundos para actualización en tiempo real entre usuarios
     setInterval(() => {
       cargarRegistrosDesdeNube(true);
-    }, 10000);
+      procesarColaPendientes();
+    }, INTERVALO_SYNC_MS);
 
     document.addEventListener('DOMContentLoaded', () => {
       const params = new URLSearchParams(window.location.search);
@@ -1588,32 +1595,78 @@ function imprimirReportePDF(folioTarget) {
     }
 
     function sincronizarConExcelNube(payload) {
-      if (!URL_WEBHOOK_EXCEL || URL_WEBHOOK_EXCEL.includes('EJEMPLO')) {
-        mostrarToastSync('⚠️ URL Webhook no configurada', true);
-        registrarErrorLocalSync(payload.tipoAccion || 'REGISTRO_NCR', payload.folio || 'N/A', payload.inspector || perfilUsuario.nombre, 'URL Webhook no configurada', payload);
-        return;
+      if (!payload || !payload.folio) return;
+
+      // Marcar registro localmente como pendiente
+      if (baseDatos[payload.folio]) {
+        baseDatos[payload.folio].esPendiente = true;
+        localStorage.setItem('db_calidad_v3', JSON.stringify(baseDatos));
       }
 
-      mostrarToastSync('⏳ Enviando datos a Google Sheets...');
+      // Encolar si no está en la cola
+      const existeEnCola = colaPendientes.some(x => x.payload?.folio === payload.folio && x.payload?.tipoAccion === payload.tipoAccion);
+      if (!existeEnCola) {
+        colaPendientes.push({
+          id: 'OP-' + Date.now() + '-' + Math.floor(Math.random()*1000),
+          folio: payload.folio,
+          payload: payload,
+          fechaEncolado: new Date().toISOString()
+        });
+        localStorage.setItem('cola_pendientes_v1', JSON.stringify(colaPendientes));
+      }
 
+      aplicarFiltrosYTabla();
+      procesarColaPendientes();
+    }
+
+    function procesarColaPendientes() {
+      if (!URL_WEBHOOK_EXCEL || URL_WEBHOOK_EXCEL.includes('EJEMPLO')) return;
+      if (!colaPendientes || colaPendientes.length === 0) return;
+
+      const op = colaPendientes[0];
+      mostrarToastSync(`⏳ Sincronizando ${op.folio} con Google Sheets...`);
+
+      // Petición HTTP POST sin 'no-cors' para recibir respuesta JSON real con estado OK/ERROR
       fetch(URL_WEBHOOK_EXCEL, {
         method: 'POST',
-        mode: 'no-cors',
-        headers: { 'Content-Type': 'text/plain' },
-        body: JSON.stringify(payload)
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify(op.payload)
       })
-      .then(() => {
-        mostrarToastSync('✅ Datos guardados y sincronizados con Google Sheets');
+      .then(r => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        return r.json();
+      })
+      .then(res => {
+        if (res && (res.status === 'OK' || res.status === 'SUCCESS')) {
+          // CONFIRMACIÓN REAL DE REGISTRO EN EL SERVIDOR:
+          // Remover la operación de la cola únicamente tras recibir res.status === 'OK'
+          colaPendientes = colaPendientes.filter(x => x.id !== op.id);
+          localStorage.setItem('cola_pendientes_v1', JSON.stringify(colaPendientes));
+
+          if (baseDatos[op.folio]) {
+            baseDatos[op.folio].esPendiente = false;
+            localStorage.setItem('db_calidad_v3', JSON.stringify(baseDatos));
+          }
+
+          mostrarToastSync(`✅ Folio ${op.folio} verificado y confirmado en la nube`);
+          aplicarFiltrosYTabla();
+
+          // Si hay más operaciones pendientes en cola, procesarlas
+          if (colaPendientes.length > 0) {
+            setTimeout(procesarColaPendientes, 1000);
+          }
+        } else {
+          console.warn(`Respuesta de rechazo del servidor para ${op.folio}:`, res);
+          mostrarToastSync(`⚠️ Error al guardar ${op.folio}: ${res?.message || 'Rechazado'}. Permanece en cola.`, true);
+        }
       })
       .catch(err => {
-        console.error("Error webhook sync:", err);
-        mostrarToastSync('⚠️ Error de red. Guardado en cola local.', true);
-        registrarErrorLocalSync(payload.tipoAccion || 'REGISTRO_NCR', payload.folio || 'N/A', payload.inspector || perfilUsuario.nombre, err.toString(), payload);
+        console.error("Error de red al procesar cola:", err);
+        mostrarToastSync(`⚠️ Error de conexión. Folio ${op.folio} guardado localmente para reintento automático.`, true);
       });
     }
 
-
-function aplicarFiltrosYTabla() {
+    function aplicarFiltrosYTabla() {
       const q = (document.getElementById('filter-search')?.value || '').toLowerCase();
       const st = document.getElementById('filter-status')?.value || '';
       const insp = document.getElementById('filter-inspector')?.value || '';
@@ -1662,9 +1715,9 @@ function aplicarFiltrosYTabla() {
               <td class="p-3 font-bold text-[#0078d4]">
                 <div class="flex items-center gap-1.5">
                   <span>${o.folio}</span>
-                  ${(o.esNube || o.sincronizadoNube) 
-                    ? '<span class="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-100 text-emerald-800 border border-emerald-300 shadow-2xs" title="Confirmado en la nube Google Sheets">☁️ Nube</span>' 
-                    : '<span class="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-extrabold bg-amber-100 text-amber-800 border border-amber-300 animate-pulse shadow-2xs" title="Guardado localmente, pendiente de sincronizar">💾 Local</span>'}
+                  ${(o.esPendiente || colaPendientes.some(x => x.payload?.folio === o.folio))
+                    ? '<span class="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-extrabold bg-amber-100 text-amber-800 border border-amber-300 shadow-2xs animate-pulse" title="Pendiente de confirmación real en Google Sheets">💾 Local</span>'
+                    : '<span class="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-100 text-emerald-800 border border-emerald-300 shadow-2xs" title="Confirmado en la nube Google Sheets">☁️ Nube</span>'}
                 </div>
               </td>
               <td class="p-3"><span class="status-badge ${badgeClass}">${o.estatus || 'Abierta'}</span></td>
